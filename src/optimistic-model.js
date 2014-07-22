@@ -184,6 +184,16 @@ angular.module('rt.optimisticmodel', []).factory('Model', function () {
         });
     }
 
+    function save() {
+        var options = this.constructor.modelOptions;
+
+        if (!this[options.idField]) {
+            return this.create();
+        } else {
+            return this.update();
+        }
+    }
+
     var Model = {
         defaults: function (defaults) {
             defaultOptions = angular.extend(defaultOptions, defaults);
@@ -201,6 +211,7 @@ angular.module('rt.optimisticmodel', []).factory('Model', function () {
             proto.update = update;
             proto.delete = destroy;
             proto.create = create;
+            proto.save = save;
         },
 
         clear: function () {

@@ -417,4 +417,21 @@ describe('Model', function () {
         assert.equal(result, joe);
         assert.equal(scope.person.first_name, 'Bob');
     });
+
+    it('Saving a new object creates it', function () {
+        var joe = new Person();
+        joe.first_name = 'Joe';
+        joe.save();
+        $httpBackend.expectPOST('/api/people', { first_name: 'Joe' }).respond(200);
+        $httpBackend.flush();
+    });
+
+    it('Updating an existing object updates it', function () {
+        var joe = new Person();
+        joe.id = 123;
+        joe.first_name = 'Joe';
+        joe.save();
+        $httpBackend.expectPUT('/api/people/123', { id: 123, first_name: 'Joe' }).respond(200);
+        $httpBackend.flush();
+    });
 });
