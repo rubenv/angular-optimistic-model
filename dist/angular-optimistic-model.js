@@ -86,11 +86,7 @@ angular.module('rt.optimisticmodel', []).factory('Model', function () {
     var promise = options.backend('GET', key).then(function (result) {
         var obj = newInstance(self, result);
         storeInCache(key, obj);
-        if (cloned) {
-          return clone(obj);
-        } else {
-          return cache[key];
-        }
+        return cloned ? clone(obj) : cache[key];
       });
     mkToScopeMethod(promise, key, cloned);
     return promise;
