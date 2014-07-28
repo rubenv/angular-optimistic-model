@@ -434,4 +434,56 @@ describe('Model', function () {
         $httpBackend.expectPUT('/api/people/123', { id: 123, first_name: 'Joe' }).respond(200);
         $httpBackend.flush();
     });
+
+    it('Can get a cloned version, which doesn\'t affect the cache', function () {
+        var joe = null;
+        Person.getClone(123).then(function (p) {
+            joe = p;
+            joe.first_name = 'Joe';
+        });
+        $httpBackend.expectGET('/api/people/123').respond(200, { id: 123, first_name: 'Bob' });
+        $httpBackend.flush();
+
+        var result = null;
+        Person.get(123).then(function (obj) {
+            result = obj;
+        });
+        $httpBackend.expectGET('/api/people/123').respond(200, { id: 123, first_name: 'Bob' });
+        $httpBackend.flush();
+        assert.equal(result.first_name, 'Bob');
+        assert.equal(joe.first_name, 'Joe');
+
+        // Change shouldn't affect scope
+        var scope = {};
+        var result2 = null;
+        Person.get(123).toScope(scope, 'person').then(function (obj) {
+            result2 = obj;
+        });
+        $httpBackend.expectGET('/api/people/123').respond(200, { id: 123, first_name: 'Bob' });
+        $httpBackend.flush();
+        assert.equal(result2.first_name, 'Bob');
+        assert.equal(scope.person.first_name, 'Bob');
+
+        // Clone doesn't get updated
+        assert.equal(joe.first_name, 'Joe');
+
+        // Same thing, cached
+        var joe2 = null;
+        var scope2 = {};
+        Person.getClone(123).toScope(scope2, 'person').then(function (obj) {
+            joe2 = obj;
+        });
+        $httpBackend.expectGET('/api/people/123').respond(200, { id: 123, first_name: 'Bob' });
+        $httpBackend.flush();
+        joe2.first_name = 'Joe';
+        assert.equal(joe2.first_name, 'Joe');
+        assert.equal(scope2.person.first_name, 'Joe');
+
+        // Cache should be unchanged
+        var scope3 = {};
+        Person.get(123).toScope(scope3, 'person');
+        assert.equal(scope3.person.first_name, 'Bob');
+        $httpBackend.expectGET('/api/people/123').respond(200, { id: 123, first_name: 'Bob' });
+        $httpBackend.flush();
+    });
 });

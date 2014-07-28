@@ -68,11 +68,12 @@ Each model class gets the following methods:
 
 * `getAll`: Retrieves all objects.
 * `get`: Get a specific instance.
+* `getClone`: Get a specific instance, cloned.
 * `create`: Create a new instance.
 * `update`: Update an instance.
 * `delete`: Delete an instance.
 
-The `get` and `getAll` methods are cached. This works works by wrapping the promises that you wait for. The module adds a `toScope` method where you can indicate where the result should be placed on the scope.
+The `get`, `getClone` and `getAll` methods are cached. This works works by wrapping the promises that you wait for. The module adds a `toScope` method where you can indicate where the result should be placed on the scope.
 
 It then does the following:
 
@@ -81,6 +82,8 @@ It then does the following:
 * Once the promise is loaded, it replaces the scope value with the up-to-date data.
 
 The end result: users see data instantly, which is updated once it's loaded.
+
+The difference between `get` and `getClone` is that `getClone` returns a clone which you can freely modify, without affecting the cache.
 
 ## Usage
 

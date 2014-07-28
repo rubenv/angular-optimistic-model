@@ -6,6 +6,9 @@ angular.module('rt.optimisticmodel', []).factory('Model', function () {
   var cache = {};
   function newInstance(Class, data) {
     var obj = new Class();
+    if (data && data.toJSON) {
+      data = data.toJSON();
+    }
     if (obj.fromJSON) {
       obj.fromJSON(data);
     } else {
@@ -14,6 +17,9 @@ angular.module('rt.optimisticmodel', []).factory('Model', function () {
       }
     }
     return obj;
+  }
+  function clone(obj) {
+    return newInstance(obj.constructor, obj);
   }
   function storeInCache(key, data) {
     mergeInto(cache, key, data);
@@ -38,15 +44,19 @@ angular.module('rt.optimisticmodel', []).factory('Model', function () {
   function updateScope(scope, key, data) {
     mergeInto(scope, key, data);
   }
-  function mkToScopeMethod(promise, key) {
+  function mkToScopeMethod(promise, key, cloned) {
+    cloned = !!cloned;
     promise.toScope = function (scope, field) {
       if (cache[key]) {
-        updateScope(scope, field, cache[key]);
+        var obj = cache[key];
+        updateScope(scope, field, cloned ? clone(obj) : obj);
       }
       promise.then(function (result) {
         updateScope(scope, field, result);
       });
-      return promise;
+      return promise.then(function () {
+        return scope[field];
+      });
     };
   }
   function getAll() {
@@ -68,17 +78,25 @@ angular.module('rt.optimisticmodel', []).factory('Model', function () {
     mkToScopeMethod(promise, key);
     return promise;
   }
-  function get(id) {
+  function get(id, cloned) {
     var self = this;
+    cloned = !!cloned;
     var options = self.modelOptions;
     var key = options.ns + '/' + id;
     var promise = options.backend('GET', key).then(function (result) {
         var obj = newInstance(self, result);
         storeInCache(key, obj);
-        return cache[key];
+        if (cloned) {
+          return clone(obj);
+        } else {
+          return cache[key];
+        }
       });
-    mkToScopeMethod(promise, key);
+    mkToScopeMethod(promise, key, cloned);
     return promise;
+  }
+  function getClone(id) {
+    return this.get(id, true);
   }
   function update(obj, fields) {
     var self = this;
@@ -172,6 +190,7 @@ angular.module('rt.optimisticmodel', []).factory('Model', function () {
       extend: function (cls, options) {
         cls.getAll = getAll;
         cls.get = get;
+        cls.getClone = getClone;
         cls.update = update;
         cls.delete = destroy;
         cls.create = create;
