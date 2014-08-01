@@ -1,7 +1,8 @@
-angular.module('rt.optimisticmodel', []).factory('Model', function () {
+angular.module('rt.optimisticmodel', []).factory('Model', function ($q) {
     var defaultOptions = {
         idField: 'id',
-        populateChildren: true
+        populateChildren: true,
+        useCached: false
     };
 
     var cache = {};
@@ -29,6 +30,23 @@ angular.module('rt.optimisticmodel', []).factory('Model', function () {
 
     function storeInCache(key, data) {
         mergeInto(cache, key, data);
+    }
+
+    function fillCache(key, data) {
+        var options = this.modelOptions;
+        if (angular.isArray(data)) {
+            var results = [];
+            for (var i = 0; i < data.length; i++) {
+                var obj = newInstance(this, data[i]);
+                if (options.populateChildren) {
+                    storeInCache(key + '/' + obj[options.idField], obj);
+                }
+                results.push(obj);
+            }
+            storeInCache(key, results);
+        } else {
+            storeInCache(key, newInstance(this, data));
+        }
     }
 
     function mergeInto(target, key, data) {
@@ -72,22 +90,26 @@ angular.module('rt.optimisticmodel', []).factory('Model', function () {
         };
     }
 
+    function mkResolved(result) {
+        var deferred = $q.defer();
+        deferred.resolve(result);
+        return deferred.promise;
+    }
+
     function getAll() {
         var self = this;
         var options = self.modelOptions;
         var key = options.ns;
-        var promise = options.backend('GET', key).then(function (data) {
-            var results = [];
-            for (var i = 0; i < data.length; i++) {
-                var obj = newInstance(self, data[i]);
-                if (options.populateChildren) {
-                    storeInCache(key + '/' + obj[options.idField], obj);
-                }
-                results.push(obj);
-            }
-            storeInCache(key, results);
-            return cache[key];
-        });
+        var promise = null;
+
+        if (options.useCached && cache[key]) {
+            promise = mkResolved(cache[key]);
+        } else {
+            promise = options.backend('GET', key).then(function (data) {
+                fillCache.call(self, key, data);
+                return cache[key];
+            });
+        }
 
         mkToScopeMethod(promise, key);
         return promise;
@@ -98,11 +120,16 @@ angular.module('rt.optimisticmodel', []).factory('Model', function () {
         cloned = !!cloned;
         var options = self.modelOptions;
         var key = options.ns + '/' + id;
-        var promise = options.backend('GET', key).then(function (result) {
-            var obj = newInstance(self, result);
-            storeInCache(key, obj);
-            return cloned ? clone(obj) : cache[key];
-        });
+        var promise = null;
+
+        if (options.useCached && cache[key]) {
+            promise = mkResolved(cache[key]);
+        } else {
+            promise = options.backend('GET', key).then(function (result) {
+                fillCache.call(self, key, result);
+                return cloned ? clone(cache[key]) : cache[key];
+            });
+        }
 
         mkToScopeMethod(promise, key, cloned);
         return promise;
@@ -224,6 +251,7 @@ angular.module('rt.optimisticmodel', []).factory('Model', function () {
             cls.update = update;
             cls.delete = destroy;
             cls.create = create;
+            cls.cache = fillCache;
             cls.modelOptions = angular.extend({}, defaultOptions, options);
 
             var proto = cls.prototype;
@@ -235,9 +263,7 @@ angular.module('rt.optimisticmodel', []).factory('Model', function () {
 
         clear: function () {
             cache = {};
-        },
-
-        cache: storeInCache,
+        }
     };
 
     return Model;

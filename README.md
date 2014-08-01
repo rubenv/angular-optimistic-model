@@ -72,6 +72,7 @@ Each model class gets the following methods:
 * `create`: Create a new instance.
 * `update`: Update an instance.
 * `delete`: Delete an instance.
+* `cache`: Pre-fill the cache.
 
 The `get`, `getClone` and `getAll` methods are cached. This works works by wrapping the promises that you wait for. The module adds a `toScope` method where you can indicate where the result should be placed on the scope.
 

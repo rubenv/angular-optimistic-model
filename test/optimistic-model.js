@@ -1,5 +1,6 @@
 describe('Model', function () {
     var $httpBackend;
+    var $rootScope;
     var Model = null;
     var Person;
     var callAccount;
@@ -8,6 +9,7 @@ describe('Model', function () {
 
     beforeEach(inject(function ($injector, $http) {
         $httpBackend = $injector.get('$httpBackend');
+        $rootScope = $injector.get('$rootScope');
 
         callAccount = function callAccount(method, url, data) {
             return $http({
@@ -398,10 +400,10 @@ describe('Model', function () {
     });
 
     it('Can pre-fill the cache', function () {
-        var joe = new Person();
-        joe.id = 123;
-        joe.first_name = 'Joe';
-        Model.cache('/api/people/123', joe);
+        Person.cache('/api/people/123', {
+            id: 123,
+            first_name: 'Joe'
+        });
 
         var scope = {};
         var result = null;
@@ -410,11 +412,9 @@ describe('Model', function () {
         });
 
         assert.equal(scope.person.first_name, 'Joe');
-        assert.equal(scope.person, joe);
 
         $httpBackend.expectGET('/api/people/123').respond(200, { id: 123, first_name: 'Bob' });
         $httpBackend.flush();
-        assert.equal(result, joe);
         assert.equal(scope.person.first_name, 'Bob');
     });
 
@@ -485,5 +485,41 @@ describe('Model', function () {
         assert.equal(scope3.person.first_name, 'Bob');
         $httpBackend.expectGET('/api/people/123').respond(200, { id: 123, first_name: 'Bob' });
         $httpBackend.flush();
+    });
+
+    it('Will not fetch cached data when using useCached', function () {
+        function Document() {}
+        Model.extend(Document, { ns: '/api/documents', useCached: true });
+
+        Document.cache('/api/documents', [
+            {
+                id: 123,
+                content: 'test'
+            }
+        ]);
+
+        var scope = {};
+        var documents = null;
+        Document.getAll().toScope(scope, 'documents').then(function (result) {
+            documents = result;
+        });
+        $rootScope.$digest();
+
+        assert.equal(scope.documents, documents);
+        assert.equal(scope.documents[0], documents[0]);
+        assert.equal(scope.documents[0].constructor, Document);
+        assert.equal(documents[0].content, 'test');
+
+        // Also works for get
+        var scope2 = {};
+        var doc = null;
+        Document.get(123).toScope(scope2, 'document').then(function (result) {
+            doc = result;
+        });
+        $rootScope.$digest();
+
+        assert.equal(scope2.document, doc);
+        assert.equal(scope2.document.constructor, Document);
+        assert.equal(doc.content, 'test');
     });
 });
