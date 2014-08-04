@@ -263,6 +263,10 @@ angular.module('rt.optimisticmodel', []).factory('Model', ["$q", function ($q) {
 
         clear: function () {
             cache = {};
+        },
+
+        getCache: function (key) {
+            return cache[key];
         }
     };
 
