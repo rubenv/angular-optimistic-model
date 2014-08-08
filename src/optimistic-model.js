@@ -183,16 +183,9 @@ angular.module('rt.optimisticmodel', []).factory('Model', function ($q, $rootSco
         });
     }
 
-    function create(obj) {
-        var self = this;
-        if (!obj) {
-            obj = self;
-            self = obj.constructor;
-        }
-
-        var options = self.modelOptions;
+    function create(Class, options, obj) {
         return options.backend('POST', options.ns, obj).then(function (data) {
-            var obj = newInstance(self, data);
+            var obj = newInstance(Class, data);
             var key = options.ns + '/' + obj[options.idField];
             storeInCache(key, obj);
             var result = cache[key];
@@ -250,7 +243,9 @@ angular.module('rt.optimisticmodel', []).factory('Model', function ($q, $rootSco
             cls.delete = function (obj) {
                 return destroy(cls, cls.modelOptions, obj);
             };
-            cls.create = create;
+            cls.create = function (obj) {
+                return create(cls, cls.modelOptions, obj);
+            };
             cls.cache = fillCache;
             cls.modelOptions = angular.extend({}, defaultOptions, options);
 
@@ -261,7 +256,9 @@ angular.module('rt.optimisticmodel', []).factory('Model', function ($q, $rootSco
             proto.delete = function () {
                 return destroy(this.constructor, this.constructor.modelOptions, this);
             };
-            proto.create = create;
+            proto.create = function () {
+                return create(this.constructor, this.constructor.modelOptions, this);
+            };
             proto.save = save;
         },
 
@@ -275,6 +272,7 @@ angular.module('rt.optimisticmodel', []).factory('Model', function ($q, $rootSco
 
         update: update,
         delete: destroy,
+        create: create,
     };
 
     return Model;
