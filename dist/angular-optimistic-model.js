@@ -140,13 +140,7 @@ angular.module('rt.optimisticmodel', []).factory('Model', ["$q", "$rootScope", f
         return this.get(id, true);
     }
 
-    function update(obj, fields) {
-        var self = this;
-        if (!obj) {
-            obj = self;
-            self = obj.constructor;
-        }
-
+    function update(Class, options, obj, fields) {
         var data = obj;
         if (fields) {
             data = {};
@@ -155,10 +149,9 @@ angular.module('rt.optimisticmodel', []).factory('Model', ["$q", "$rootScope", f
             }
         }
 
-        var options = self.modelOptions;
         var key = options.ns + '/' + obj[options.idField];
         var promise = options.backend('PUT', key, data).then(function (result) {
-            var obj = newInstance(self, result);
+            var obj = newInstance(Class, result);
             storeInCache(key, obj);
             return cache[key];
         });
@@ -258,14 +251,18 @@ angular.module('rt.optimisticmodel', []).factory('Model', ["$q", "$rootScope", f
             cls.getAll = getAll;
             cls.get = get;
             cls.getClone = getClone;
-            cls.update = update;
+            cls.update = function (obj, fields) {
+                return update(cls, cls.modelOptions, obj, fields);
+            };
             cls.delete = destroy;
             cls.create = create;
             cls.cache = fillCache;
             cls.modelOptions = angular.extend({}, defaultOptions, options);
 
             var proto = cls.prototype;
-            proto.update = update;
+            proto.update = function () {
+                return update(this.constructor, this.constructor.modelOptions, this);
+            };
             proto.delete = destroy;
             proto.create = create;
             proto.save = save;
@@ -277,7 +274,9 @@ angular.module('rt.optimisticmodel', []).factory('Model', ["$q", "$rootScope", f
 
         getCache: function (key) {
             return cache[key];
-        }
+        },
+
+        update: update,
     };
 
     return Model;
