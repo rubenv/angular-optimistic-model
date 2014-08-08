@@ -228,6 +228,18 @@ angular.module('rt.optimisticmodel', []).factory('Model', ["$q", "$rootScope", f
         return promise;
     }
 
+    function staticMethod(cls, fn) {
+        return function () {
+            fn.apply(null, [cls, cls.modelOptions].concat(Array.prototype.slice.call(arguments, 0)));
+        };
+    }
+
+    function method(fn) {
+        return function () {
+            return fn(this.constructor, this.constructor.modelOptions, this);
+        };
+    }
+
     var Model = {
         defaults: function (defaults) {
             defaultOptions = angular.extend(defaultOptions, defaults);
@@ -237,28 +249,16 @@ angular.module('rt.optimisticmodel', []).factory('Model', ["$q", "$rootScope", f
             cls.getAll = getAll;
             cls.get = get;
             cls.getClone = getClone;
-            cls.update = function (obj, fields) {
-                return update(cls, cls.modelOptions, obj, fields);
-            };
-            cls.delete = function (obj) {
-                return destroy(cls, cls.modelOptions, obj);
-            };
-            cls.create = function (obj) {
-                return create(cls, cls.modelOptions, obj);
-            };
+            cls.update = staticMethod(cls, update);
+            cls.delete = staticMethod(cls, destroy);
+            cls.create = staticMethod(cls, create);
             cls.cache = fillCache;
             cls.modelOptions = angular.extend({}, defaultOptions, options);
 
             var proto = cls.prototype;
-            proto.update = function () {
-                return update(this.constructor, this.constructor.modelOptions, this);
-            };
-            proto.delete = function () {
-                return destroy(this.constructor, this.constructor.modelOptions, this);
-            };
-            proto.create = function () {
-                return create(this.constructor, this.constructor.modelOptions, this);
-            };
+            proto.update = method(update);
+            proto.delete = method(destroy);
+            proto.create = method(create);
             proto.save = save;
         },
 
