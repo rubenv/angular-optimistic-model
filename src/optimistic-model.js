@@ -233,8 +233,6 @@ angular.module('rt.optimisticmodel', []).factory('Model', function ($q, $rootSco
         var self = this;
         var options = self.constructor.modelOptions;
 
-        $rootScope.$broadcast('modelSaveStarted', self);
-
         var promise = null;
         if (!self[options.idField]) {
             promise = self.create();
@@ -242,8 +240,9 @@ angular.module('rt.optimisticmodel', []).factory('Model', function ($q, $rootSco
             promise = self.update();
         }
 
+        $rootScope.$broadcast('modelSaveStarted', self, promise);
         promise.finally(function () {
-            $rootScope.$broadcast('modelSaveEnded', self);
+            $rootScope.$broadcast('modelSaveEnded', self, promise);
         });
 
         return promise;
