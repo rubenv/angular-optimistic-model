@@ -1,11 +1,12 @@
-angular.module('rt.optimisticmodel', []).factory('Model', function ($q, $rootScope) {
+angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootScope) {
     var defaultOptions = {
-        idField: 'id',
+        idField: "id",
         populateChildren: true,
         useCached: false
     };
 
     var cache = {};
+    var modelOptionsKey = "modelOptions";
 
     function newInstance(Class, data) {
         var obj = new Class();
@@ -30,17 +31,17 @@ angular.module('rt.optimisticmodel', []).factory('Model', function ($q, $rootSco
 
     function storeInCache(key, data) {
         mergeInto(cache, key, data);
-        $rootScope.$broadcast('modelCached', key, cache[key]);
+        $rootScope.$broadcast("modelCached", key, cache[key]);
     }
 
     function fillCache(key, data) {
-        var options = this.modelOptions;
+        var options = this[modelOptionsKey];
         if (angular.isArray(data)) {
             var results = [];
             for (var i = 0; i < data.length; i++) {
                 var obj = newInstance(this, data[i]);
                 if (options.populateChildren) {
-                    storeInCache(key + '/' + obj[options.idField], obj);
+                    storeInCache(key + "/" + obj[options.idField], obj);
                 }
                 results.push(obj);
             }
@@ -104,7 +105,7 @@ angular.module('rt.optimisticmodel', []).factory('Model', function ($q, $rootSco
         if (options.useCached && cache[key]) {
             promise = mkResolved(cache[key]);
         } else {
-            promise = options.backend('GET', key).then(function (data) {
+            promise = options.backend("GET", key).then(function (data) {
                 fillCache.call(Class, key, data);
                 return cache[key];
             });
@@ -117,14 +118,14 @@ angular.module('rt.optimisticmodel', []).factory('Model', function ($q, $rootSco
     function get(id, cloned) {
         var self = this;
         cloned = !!cloned;
-        var options = self.modelOptions;
-        var key = options.ns + '/' + id;
+        var options = self[modelOptionsKey];
+        var key = options.ns + "/" + id;
         var promise = null;
 
         if (options.useCached && cache[key]) {
             promise = mkResolved(cache[key]);
         } else {
-            promise = options.backend('GET', key).then(function (result) {
+            promise = options.backend("GET", key).then(function (result) {
                 fillCache.call(self, key, result);
                 return cloned ? clone(cache[key]) : cache[key];
             });
@@ -147,8 +148,8 @@ angular.module('rt.optimisticmodel', []).factory('Model', function ($q, $rootSco
             }
         }
 
-        var key = options.ns + '/' + obj[options.idField];
-        var promise = options.backend('PUT', key, data).then(function (result) {
+        var key = options.ns + "/" + obj[options.idField];
+        var promise = options.backend("PUT", key, data).then(function (result) {
             var obj = newInstance(Class, result);
             storeInCache(key, obj);
             return cache[key];
@@ -159,9 +160,9 @@ angular.module('rt.optimisticmodel', []).factory('Model', function ($q, $rootSco
     }
 
     function destroy(Class, options, obj) {
-        var id = typeof obj === 'object' ? obj[options.idField] : obj;
-        var key = options.ns + '/' + id;
-        return options.backend('DELETE', key).then(function () {
+        var id = typeof obj === "object" ? obj[options.idField] : obj;
+        var key = options.ns + "/" + id;
+        return options.backend("DELETE", key).then(function () {
             delete cache[key];
 
             // Remove from parent collection (if available)
@@ -182,9 +183,9 @@ angular.module('rt.optimisticmodel', []).factory('Model', function ($q, $rootSco
     }
 
     function create(Class, options, obj) {
-        return options.backend('POST', options.ns, obj).then(function (data) {
+        return options.backend("POST", options.ns, obj).then(function (data) {
             var obj = newInstance(Class, data);
-            var key = options.ns + '/' + obj[options.idField];
+            var key = options.ns + "/" + obj[options.idField];
             storeInCache(key, obj);
             var result = cache[key];
 
@@ -209,7 +210,7 @@ angular.module('rt.optimisticmodel', []).factory('Model', function ($q, $rootSco
 
     function save() {
         var self = this;
-        var options = self.constructor.modelOptions;
+        var options = self.constructor[modelOptionsKey];
 
         var promise = null;
         if (!self[options.idField]) {
@@ -218,9 +219,9 @@ angular.module('rt.optimisticmodel', []).factory('Model', function ($q, $rootSco
             promise = self.update();
         }
 
-        $rootScope.$broadcast('modelSaveStarted', self, promise);
+        $rootScope.$broadcast("modelSaveStarted", self, promise);
         promise.finally(function () {
-            $rootScope.$broadcast('modelSaveEnded', self, promise);
+            $rootScope.$broadcast("modelSaveEnded", self, promise);
         });
 
         return promise;
@@ -228,13 +229,13 @@ angular.module('rt.optimisticmodel', []).factory('Model', function ($q, $rootSco
 
     function staticMethod(cls, fn) {
         return function () {
-            return fn.apply(null, [cls, cls.modelOptions].concat(Array.prototype.slice.call(arguments, 0)));
+            return fn.apply(null, [cls, cls[modelOptionsKey]].concat(Array.prototype.slice.call(arguments, 0)));
         };
     }
 
     function method(fn) {
         return function () {
-            return fn(this.constructor, this.constructor.modelOptions, this);
+            return fn(this.constructor, this.constructor[modelOptionsKey], this);
         };
     }
 
@@ -251,7 +252,7 @@ angular.module('rt.optimisticmodel', []).factory('Model', function ($q, $rootSco
             cls.delete = staticMethod(cls, destroy);
             cls.create = staticMethod(cls, create);
             cls.cache = fillCache;
-            cls.modelOptions = angular.extend({}, defaultOptions, options);
+            cls[modelOptionsKey] = angular.extend({}, defaultOptions, options);
 
             var proto = cls.prototype;
             proto.update = method(update);
