@@ -1,4 +1,4 @@
-angular.module('rt.optimisticmodel', []).factory('Model', ["$q", function ($q) {
+angular.module('rt.optimisticmodel', []).factory('Model', ["$q", "$rootScope", function ($q, $rootScope) {
     var defaultOptions = {
         idField: 'id',
         populateChildren: true,
@@ -230,13 +230,23 @@ angular.module('rt.optimisticmodel', []).factory('Model', ["$q", function ($q) {
     }
 
     function save() {
-        var options = this.constructor.modelOptions;
+        var self = this;
+        var options = self.constructor.modelOptions;
 
-        if (!this[options.idField]) {
-            return this.create();
+        $rootScope.$broadcast('modelSaveStarted', self);
+
+        var promise = null;
+        if (!self[options.idField]) {
+            promise = self.create();
         } else {
-            return this.update();
+            promise = self.update();
         }
+
+        promise.finally(function () {
+            $rootScope.$broadcast('modelSaveEnded', self);
+        });
+
+        return promise;
     }
 
     var Model = {
