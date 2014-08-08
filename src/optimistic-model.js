@@ -160,14 +160,7 @@ angular.module('rt.optimisticmodel', []).factory('Model', function ($q, $rootSco
         return promise;
     }
 
-    function destroy(obj) {
-        var self = this;
-        if (!obj) {
-            obj = self;
-            self = obj.constructor;
-        }
-
-        var options = self.modelOptions;
+    function destroy(Class, options, obj) {
         var id = typeof obj === 'object' ? obj[options.idField] : obj;
         var key = options.ns + '/' + id;
         return options.backend('DELETE', key).then(function () {
@@ -254,7 +247,9 @@ angular.module('rt.optimisticmodel', []).factory('Model', function ($q, $rootSco
             cls.update = function (obj, fields) {
                 return update(cls, cls.modelOptions, obj, fields);
             };
-            cls.delete = destroy;
+            cls.delete = function (obj) {
+                return destroy(cls, cls.modelOptions, obj);
+            };
             cls.create = create;
             cls.cache = fillCache;
             cls.modelOptions = angular.extend({}, defaultOptions, options);
@@ -263,7 +258,9 @@ angular.module('rt.optimisticmodel', []).factory('Model', function ($q, $rootSco
             proto.update = function () {
                 return update(this.constructor, this.constructor.modelOptions, this);
             };
-            proto.delete = destroy;
+            proto.delete = function () {
+                return destroy(this.constructor, this.constructor.modelOptions, this);
+            };
             proto.create = create;
             proto.save = save;
         },
@@ -277,7 +274,10 @@ angular.module('rt.optimisticmodel', []).factory('Model', function ($q, $rootSco
         },
 
         update: update,
+        delete: destroy,
     };
 
     return Model;
 });
+
+// TODO: Use options from class (if available, override from options)
