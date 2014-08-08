@@ -30,6 +30,7 @@ angular.module('rt.optimisticmodel', []).factory('Model', ["$q", "$rootScope", f
 
     function storeInCache(key, data) {
         mergeInto(cache, key, data);
+        $rootScope.$broadcast('modelCached', key, cache[key]);
     }
 
     function fillCache(key, data) {
