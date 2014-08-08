@@ -97,9 +97,7 @@ angular.module('rt.optimisticmodel', []).factory('Model', ["$q", "$rootScope", f
         return deferred.promise;
     }
 
-    function getAll() {
-        var self = this;
-        var options = self.modelOptions;
+    function getAll(Class, options) {
         var key = options.ns;
         var promise = null;
 
@@ -107,7 +105,7 @@ angular.module('rt.optimisticmodel', []).factory('Model', ["$q", "$rootScope", f
             promise = mkResolved(cache[key]);
         } else {
             promise = options.backend('GET', key).then(function (data) {
-                fillCache.call(self, key, data);
+                fillCache.call(Class, key, data);
                 return cache[key];
             });
         }
@@ -230,7 +228,7 @@ angular.module('rt.optimisticmodel', []).factory('Model', ["$q", "$rootScope", f
 
     function staticMethod(cls, fn) {
         return function () {
-            fn.apply(null, [cls, cls.modelOptions].concat(Array.prototype.slice.call(arguments, 0)));
+            return fn.apply(null, [cls, cls.modelOptions].concat(Array.prototype.slice.call(arguments, 0)));
         };
     }
 
@@ -246,7 +244,7 @@ angular.module('rt.optimisticmodel', []).factory('Model', ["$q", "$rootScope", f
         },
 
         extend: function (cls, options) {
-            cls.getAll = getAll;
+            cls.getAll = staticMethod(cls, getAll);
             cls.get = get;
             cls.getClone = getClone;
             cls.update = staticMethod(cls, update);
@@ -270,6 +268,7 @@ angular.module('rt.optimisticmodel', []).factory('Model', ["$q", "$rootScope", f
             return cache[key];
         },
 
+        getAll: getAll,
         update: update,
         delete: destroy,
         create: create,
