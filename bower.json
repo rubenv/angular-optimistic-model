@@ -1,6 +1,6 @@
 {
   "name": "angular-optimistic-model",
-  "version": "1.1.3",
+  "version": "1.1.4",
   "main": "dist/angular-optimistic-model.js",
   "ignore": [
     "**/.*",
