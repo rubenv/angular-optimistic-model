@@ -34,12 +34,11 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
         $rootScope.$broadcast("modelCached", key, cache[key]);
     }
 
-    function fillCache(key, data) {
-        var options = this[modelOptionsKey];
+    function fillCache(Class, options, key, data) {
         if (angular.isArray(data)) {
             var results = [];
             for (var i = 0; i < data.length; i++) {
-                var obj = newInstance(this, data[i]);
+                var obj = newInstance(Class, data[i]);
                 if (options.populateChildren) {
                     storeInCache(key + "/" + obj[options.idField], obj);
                 }
@@ -47,13 +46,17 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
             }
             storeInCache(key, results);
         } else {
-            storeInCache(key, newInstance(this, data));
+            storeInCache(key, newInstance(Class, data));
         }
     }
 
     function mergeInto(target, key, data) {
         if (!target[key]) {
             target[key] = data;
+            return;
+        }
+
+        if (target[key] === data) {
             return;
         }
 
@@ -106,7 +109,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
             promise = mkResolved(cache[key]);
         } else {
             promise = options.backend("GET", key).then(function (data) {
-                fillCache.call(Class, key, data);
+                fillCache(Class, options, key, data);
                 return cache[key];
             });
         }
@@ -115,28 +118,22 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
         return promise;
     }
 
-    function get(id, cloned) {
-        var self = this;
-        cloned = !!cloned;
-        var options = self[modelOptionsKey];
+    function get(Class, options, id) {
         var key = options.ns + "/" + id;
+        var cloned = !!options.cloned;
         var promise = null;
 
         if (options.useCached && cache[key]) {
             promise = mkResolved(cache[key]);
         } else {
             promise = options.backend("GET", key).then(function (result) {
-                fillCache.call(self, key, result);
+                fillCache(Class, options, key, result);
                 return cloned ? clone(cache[key]) : cache[key];
             });
         }
 
         mkToScopeMethod(promise, key, cloned);
         return promise;
-    }
-
-    function getClone(id) {
-        return this.get(id, true);
     }
 
     function update(Class, options, obj, fields) {
@@ -227,9 +224,10 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
         return promise;
     }
 
-    function staticMethod(cls, fn) {
+    function staticMethod(cls, fn, optionsOverride) {
         return function () {
-            return fn.apply(null, [cls, cls[modelOptionsKey]].concat(Array.prototype.slice.call(arguments, 0)));
+            var options = angular.extend({}, cls[modelOptionsKey], optionsOverride);
+            return fn.apply(null, [cls, options].concat(Array.prototype.slice.call(arguments, 0)));
         };
     }
 
@@ -246,12 +244,12 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
 
         extend: function (cls, options) {
             cls.getAll = staticMethod(cls, getAll);
-            cls.get = get;
-            cls.getClone = getClone;
+            cls.get = staticMethod(cls, get);
+            cls.getClone = staticMethod(cls, get, { cloned: true });
             cls.update = staticMethod(cls, update);
             cls.delete = staticMethod(cls, destroy);
             cls.create = staticMethod(cls, create);
-            cls.cache = fillCache;
+            cls.cache = staticMethod(cls, fillCache);
             cls[modelOptionsKey] = angular.extend({}, defaultOptions, options);
 
             var proto = cls.prototype;
@@ -269,6 +267,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
             return cache[key];
         },
 
+        get: get,
         getAll: getAll,
         update: update,
         delete: destroy,
