@@ -57,6 +57,10 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
             return;
         }
 
+        if (target[key] === data) {
+            return;
+        }
+
         var targetObj = target[key];
         if (angular.isArray(data)) {
             for (var i = 0; i < data.length; i++) {
