@@ -522,4 +522,25 @@ describe("Model", function () {
         assert.equal(scope2.document.constructor, Document);
         assert.equal(doc.content, "test");
     });
+
+    it("getCached does not fetch unless needed", function () {
+        // Not cached, will fetch
+        var result = null;
+        Person.getCached(123).then(function (obj) {
+            result = obj;
+        });
+        $httpBackend.expectGET("/api/people/123").respond(200, { id: 123, first_name: "Ruben" });
+        $httpBackend.flush();
+
+        // Cached, won't fetch
+        var scope = {};
+        var result2 = null;
+        Person.getCached(123).toScope(scope, "person").then(function (obj) {
+            result2 = obj;
+        });
+        $rootScope.$digest();
+        assert.equal(scope.person.first_name, "Ruben");
+        assert.equal(scope.person, result);
+        assert.equal(result2, result);
+    });
 });

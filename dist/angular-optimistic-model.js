@@ -245,6 +245,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
         extend: function (cls, options) {
             cls.getAll = staticMethod(cls, getAll);
             cls.get = staticMethod(cls, get);
+            cls.getCached = staticMethod(cls, get, { useCached: true });
             cls.getClone = staticMethod(cls, get, { cloned: true });
             cls.update = staticMethod(cls, update);
             cls.delete = staticMethod(cls, destroy);
