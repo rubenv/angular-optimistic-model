@@ -543,4 +543,10 @@ describe("Model", function () {
         assert.equal(scope.person, result);
         assert.equal(result2, result);
     });
+
+    it("Uses options from class, adds overrides", function () {
+        Model.get(Person, { ns: "/api/test" }, 123);
+        $httpBackend.expectGET("/api/test/123").respond(200);
+        $httpBackend.flush();
+    });
 });
