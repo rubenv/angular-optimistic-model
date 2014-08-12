@@ -243,7 +243,8 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
 
     function method(fn) {
         return function () {
-            return fn(this.constructor, this.constructor.modelOptions, this);
+            var args = [this.constructor, this.constructor.modelOptions, this].concat(Array.prototype.slice.call(arguments, 0));
+            return fn.apply(null, args);
         };
     }
 

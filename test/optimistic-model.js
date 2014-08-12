@@ -245,6 +245,15 @@ describe("Model", function () {
         $httpBackend.flush();
     });
 
+    it("Can select update fields on object", function () {
+        var joe = new Person();
+        joe.id = 3;
+        joe.first_name = "Test";
+        joe.update(["first_name"]);
+        $httpBackend.expectPUT("/api/people/3", { first_name: "Test" }).respond(200);
+        $httpBackend.flush();
+    });
+
     it("Supports fromJSON", function () {
         function Document() {}
         Model.extend(Document, { ns: "/api/documents" });
