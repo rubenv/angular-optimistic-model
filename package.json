@@ -1,6 +1,6 @@
 {
   "name": "angular-optimistic-model",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Optimistically cached models for Angular.JS.",
   "main": "dist/angular-optimistic-model.js",
   "directories": {
