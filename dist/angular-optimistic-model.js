@@ -130,7 +130,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
         var promise = null;
 
         if (opts.useCached && cache[key]) {
-            promise = mkResolved(cache[key]);
+            promise = mkResolved(cloned ? clone(cache[key]) : cache[key]);
         } else {
             promise = opts.backend("GET", key).then(function (result) {
                 fillCache(Class, options, key, result);

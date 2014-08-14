@@ -558,4 +558,35 @@ describe("Model", function () {
         $httpBackend.expectGET("/api/test/123").respond(200);
         $httpBackend.flush();
     });
+
+    it("Clones work with useCached", function () {
+        function Document() {}
+        Model.extend(Document, { ns: "/api/documents", useCached: true });
+
+        Document.cache("/api/documents", [
+            {
+                id: 123,
+                content: "test"
+            }
+        ]);
+
+        var doc = null;
+        Document.get(123).then(function (result) {
+            doc = result;
+        });
+        $rootScope.$digest();
+        assert.equal(doc.content, "test");
+
+        var clone = null;
+        Document.getClone(123).then(function (result) {
+            clone = result;
+        });
+        $rootScope.$digest();
+        assert.equal(clone.content, "test");
+        assert.equal(doc.content, "test");
+
+        clone.content = "bla";
+        assert.equal(clone.content, "bla");
+        assert.equal(doc.content, "test");
+    });
 });
