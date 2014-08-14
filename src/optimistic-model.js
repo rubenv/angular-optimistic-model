@@ -18,6 +18,8 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
             data = data.toJSON();
         }
 
+        data = angular.copy(data);
+
         if (obj.fromJSON) {
             obj.fromJSON(data);
         } else {

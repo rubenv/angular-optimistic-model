@@ -589,4 +589,37 @@ describe("Model", function () {
         assert.equal(clone.content, "bla");
         assert.equal(doc.content, "test");
     });
+
+    it("Correctly clones deep data", function () {
+        function Document() {}
+        Model.extend(Document, { ns: "/api/documents", useCached: true });
+
+        Document.cache("/api/documents", [
+            {
+                id: 123,
+                content: {
+                    body: "test"
+                }
+            }
+        ]);
+
+        var doc = null;
+        Document.get(123).then(function (result) {
+            doc = result;
+        });
+        $rootScope.$digest();
+        assert.equal(doc.content.body, "test");
+
+        var clone = null;
+        Document.getClone(123).then(function (result) {
+            clone = result;
+        });
+        $rootScope.$digest();
+        assert.equal(clone.content.body, "test");
+        assert.equal(doc.content.body, "test");
+
+        clone.content.body = "bla";
+        assert.equal(clone.content.body, "bla");
+        assert.equal(doc.content.body, "test");
+    });
 });
