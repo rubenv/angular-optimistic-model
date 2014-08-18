@@ -197,7 +197,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
             }
         });
 
-        emit("Destroy", obj, promise);
+        emit("Delete", obj, promise);
 
         return promise;
     }
