@@ -107,6 +107,13 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
         return deferred.promise;
     }
 
+    function emit(event, obj, promise) {
+        $rootScope.$broadcast("model" + event + "Started", obj, promise);
+        promise.finally(function () {
+            $rootScope.$broadcast("model" + event + "Ended", obj, promise);
+        });
+    }
+
     function getAll(Class, options) {
         var opts = getOptions(Class, options);
         var key = opts.ns;
@@ -170,7 +177,8 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
         var opts = getOptions(Class, options);
         var id = typeof obj === "object" ? obj[opts.idField] : obj;
         var key = opts.ns + "/" + id;
-        return opts.backend("DELETE", key).then(function () {
+
+        var promise = opts.backend("DELETE", key).then(function () {
             delete cache[key];
 
             // Remove from parent collection (if available)
@@ -188,6 +196,10 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
                 }
             }
         });
+
+        emit("Destroy", obj, promise);
+
+        return promise;
     }
 
     function create(Class, options, obj) {
@@ -228,10 +240,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
             promise = self.update();
         }
 
-        $rootScope.$broadcast("modelSaveStarted", self, promise);
-        promise.finally(function () {
-            $rootScope.$broadcast("modelSaveEnded", self, promise);
-        });
+        emit("Save", self, promise);
 
         return promise;
     }
