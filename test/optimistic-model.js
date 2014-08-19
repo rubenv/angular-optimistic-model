@@ -622,4 +622,28 @@ describe("Model", function () {
         assert.equal(clone.content.body, "bla");
         assert.equal(doc.content.body, "test");
     });
+
+    it("Can disable child caching", function () {
+        function Document() {}
+        Model.extend(Document, {
+            ns: "/api/documents",
+            useCached: true,
+            useCachedChildren: false,
+        });
+
+        Document.cache("/api/documents", [
+            {
+                id: 123,
+            }
+        ]);
+
+        // No call on getAll.
+        Document.getAll();
+        $rootScope.$digest();
+
+        // Does fetch children.
+        Document.get(123);
+        $httpBackend.expectGET("/api/documents/123").respond(200, { id: 123 });
+        $httpBackend.flush();
+    });
 });

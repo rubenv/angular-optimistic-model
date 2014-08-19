@@ -2,7 +2,8 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
     var defaultOptions = {
         idField: "id",
         populateChildren: true,
-        useCached: false
+        useCached: false,
+        useCachedChildren: true, // Only applies when useCached is true.
     };
 
     var cache = {};
@@ -138,7 +139,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
         var cloned = !!opts.cloned;
         var promise = null;
 
-        if (opts.useCached && cache[key]) {
+        if (opts.useCached && opts.useCachedChildren && cache[key]) {
             promise = mkResolved(cloned ? clone(cache[key]) : cache[key]);
         } else {
             promise = opts.backend("GET", key).then(function (result) {
