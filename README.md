@@ -99,7 +99,7 @@ Namespaces are structured and the module assumes that you use standard REST stru
 
 An example (namespace: `/api/people`):
 
-```
+```json
 [
     { id: 123, name: "Test" }
 ]
