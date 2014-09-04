@@ -646,4 +646,37 @@ describe("Model", function () {
         $httpBackend.expectGET("/api/documents/123").respond(200, { id: 123 });
         $httpBackend.flush();
     });
+
+    it("Will derive cache key from objects", function () {
+        function Document() {}
+        Model.extend(Document, {
+            ns: "/api/documents",
+            useCached: true,
+        });
+
+        Document.cache([
+            {
+                id: 123,
+                title: "Test"
+            }
+        ]);
+
+        Document.cache({
+            id: 124,
+            title: "Test 2"
+        });
+
+        // No call on getAll.
+        var scope = {};
+        Document.getAll().toScope(scope, "documents");
+        $rootScope.$digest();
+
+        // No call on get either.
+        Document.get(124).toScope(scope, "document");
+        $rootScope.$digest();
+
+        assert.equal(scope.documents.length, 1);
+        assert.equal(scope.documents[0].title, "Test");
+        assert.equal(scope.document.title, "Test 2");
+    });
 });

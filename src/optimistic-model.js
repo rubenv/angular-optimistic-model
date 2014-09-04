@@ -41,11 +41,20 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
     }
 
     function fillCache(Class, options, key, data) {
+        var opts = getOptions(Class, options);
+
+        if (!data && angular.isArray(key)) {
+            data = key;
+            key = opts.ns;
+        }
+        if (!data && angular.isObject(key)) {
+            data = key;
+            key = opts.ns + "/" + data[opts.idField];
+        }
         if (!data) {
             return;
         }
 
-        var opts = getOptions(Class, options);
         if (angular.isArray(data)) {
             var results = [];
             for (var i = 0; i < data.length; i++) {
