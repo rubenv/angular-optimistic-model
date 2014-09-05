@@ -88,7 +88,9 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
             targetObj.length = data.length;
         } else {
             for (var field in data) {
-                targetObj[field] = data[field];
+                if (field[0] !== "_") {
+                    targetObj[field] = data[field];
+                }
             }
         }
     }

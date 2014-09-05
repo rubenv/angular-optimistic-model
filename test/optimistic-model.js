@@ -679,4 +679,33 @@ describe("Model", function () {
         assert.equal(scope.documents[0].title, "Test");
         assert.equal(scope.document.title, "Test 2");
     });
+
+    it("Ignores private fields", function () {
+        function Document() {
+            this._priv = 123;
+        }
+        Model.extend(Document, {
+            ns: "/api/documents",
+            useCached: true,
+        });
+
+        Document.cache({
+            id: 124,
+            title: "Test 2"
+        });
+
+        var doc = Model.getCache("/api/documents/124");
+        assert.equal(doc.constructor, Document);
+        assert.equal(doc._priv, 123);
+        doc._priv = 456;
+
+
+        Document.cache({
+            id: 124,
+            title: "Test 3"
+        });
+
+        assert.equal(doc.title, "Test 3");
+        assert.equal(doc._priv, 456);
+    });
 });
