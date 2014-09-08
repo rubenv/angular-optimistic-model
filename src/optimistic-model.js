@@ -95,20 +95,27 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
         }
     }
 
-    function updateScope(scope, key, data) {
+    function updateScope(scope, key, data, idField) {
+        if (idField && scope[key] && scope[key][idField] && scope[key][idField] !== data[idField]) {
+            // There was already an object on the scope, but it has a different
+            // ID. We can't blindly merge changes into it, because that will
+            // destroy the state of the previous object. Forcing a new
+            // reference by clearing the scope field.
+            delete scope[key];
+        }
         mergeInto(scope, key, data);
     }
 
-    function mkToScopeMethod(promise, key, cloned) {
+    function mkToScopeMethod(promise, key, cloned, idField) {
         cloned = !!cloned;
         promise.toScope = function (scope, field) {
             if (cache[key]) {
                 var obj = cache[key];
-                updateScope(scope, field, cloned ? clone(obj) : obj);
+                updateScope(scope, field, cloned ? clone(obj) : obj, idField);
             }
 
             promise.then(function (result) {
-                updateScope(scope, field, result);
+                updateScope(scope, field, result, idField);
             });
 
             return promise.then(function () {
@@ -163,7 +170,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
             });
         }
 
-        mkToScopeMethod(promise, key, cloned);
+        mkToScopeMethod(promise, key, cloned, opts.idField);
         return promise;
     }
 

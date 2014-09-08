@@ -708,4 +708,42 @@ describe("Model", function () {
         assert.equal(doc.title, "Test 3");
         assert.equal(doc._priv, 456);
     });
+
+    it("Should not overwrite scope objects that are referenced elsewhere", function () {
+        function Document() {}
+        Model.extend(Document, {
+            ns: "/api/documents",
+            useCached: true,
+        });
+
+        Document.cache([
+            {
+                id: 123,
+                title: "Test"
+            },
+            {
+                id: 124,
+                title: "Test 2"
+            }
+        ]);
+
+        var scope = {};
+        Document.get(123).toScope(scope, "document");
+        $rootScope.$digest();
+
+        var doc = scope.document;
+        assert.equal(doc.id, 123);
+        assert.equal(doc.title, "Test");
+
+        // Load a different ID into the scope
+        Document.get(124).toScope(scope, "document");
+        $rootScope.$digest();
+
+        assert.equal(scope.document.id, 124);
+        assert.equal(scope.document.title, "Test 2");
+
+        // Should leave original intact
+        assert.equal(doc.id, 123);
+        assert.equal(doc.title, "Test");
+    });
 });
