@@ -10,8 +10,8 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
 
     var cache = {};
 
-    function getOptions(Class, options) {
-        return angular.extend({}, Class.modelOptions, options);
+    function getOptions(Class, options, extra) {
+        return angular.extend({}, Class.modelOptions, options, extra || {});
     }
 
     function newInstance(Class, data) {
@@ -141,21 +141,22 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
         });
     }
 
-    function getAll(Class, options) {
-        var opts = getOptions(Class, options);
+    function getAll(Class, options, extra) {
+        var opts = getOptions(Class, options, extra);
         var key = opts.ns;
+        var cloned = !!opts.cloned;
         var promise = null;
 
         if (opts.useCached && cache[key]) {
-            promise = mkResolved(cache[key]);
+            promise = mkResolved(cloned ? clone(cache[key]) : cache[key]);
         } else {
             promise = opts.backend("GET", key).then(function (data) {
                 fillCache(Class, options, key, data);
-                return cache[key];
+                return cloned ? clone(cache[key]) : cache[key];
             });
         }
 
-        mkToScopeMethod(promise, key);
+        mkToScopeMethod(promise, key, cloned);
         return promise;
     }
 

@@ -775,4 +775,37 @@ describe("Model", function () {
         doc.content.body = "test";
         assert.equal(doc.hasChanges(), false);
     });
+
+    it("Can get a cloned version for a complete collection", function () {
+        var joe = null;
+        var people = null;
+        Person.getAll({ cloned: true }).then(function (p) {
+            joe = p[0];
+            joe.first_name = "Joe";
+
+            people = p;
+            people.push({ first_name: "Rick" });
+        });
+        $httpBackend.expectGET("/api/people").respond(200, [{ id: 123, first_name: "Bob" }]);
+        $httpBackend.flush();
+
+        var result = null;
+        Person.get(123).then(function (obj) {
+            result = obj;
+        });
+        $httpBackend.expectGET("/api/people/123").respond(200, { id: 123, first_name: "Bob" });
+        $httpBackend.flush();
+        assert.equal(result.first_name, "Bob");
+        assert.equal(joe.first_name, "Joe");
+        assert.equal(people.length, 2);
+
+        var result2 = null;
+        Person.getAll().then(function (p) {
+            result2 = p;
+        });
+        $httpBackend.expectGET("/api/people").respond(200, [{ id: 123, first_name: "Bob" }]);
+        $httpBackend.flush();
+        assert.equal(result2.length, 1);
+        assert.equal(people.length, 2);
+    });
 });
