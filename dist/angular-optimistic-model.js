@@ -1,4 +1,6 @@
 angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", function ($q, $rootScope) {
+    var cloneParent = "$$cloneParent";
+
     var defaultOptions = {
         idField: "id",
         populateChildren: true,
@@ -32,7 +34,9 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
     }
 
     function clone(obj) {
-        return newInstance(obj.constructor, obj);
+        var newObj = newInstance(obj.constructor, obj);
+        newObj[cloneParent] = obj;
+        return newObj;
     }
 
     function storeInCache(key, data) {
@@ -268,6 +272,14 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
         return promise;
     }
 
+    function hasChanges() {
+        if (!this[cloneParent]) {
+            throw new Error("Only works on clones!");
+        }
+
+        return !angular.equals(this, this[cloneParent]);
+    }
+
     function staticMethod(cls, fn, optionsOverride) {
         return function () {
             var options = angular.extend({}, cls.modelOptions, optionsOverride);
@@ -303,6 +315,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
             proto.delete = method(destroy);
             proto.create = method(create);
             proto.save = save;
+            proto.hasChanges = hasChanges;
         },
 
         clear: function () {
