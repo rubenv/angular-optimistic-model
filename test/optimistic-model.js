@@ -462,7 +462,7 @@ describe("Model", function () {
         assert.equal(result.first_name, "Bob");
         assert.equal(joe.first_name, "Joe");
 
-        // Change shouldn"t affect scope
+        // Change shouldn't affect scope
         var scope = {};
         var result2 = null;
         Person.get(123).toScope(scope, "person").then(function (obj) {
@@ -473,7 +473,7 @@ describe("Model", function () {
         assert.equal(result2.first_name, "Bob");
         assert.equal(scope.person.first_name, "Bob");
 
-        // Clone doesn"t get updated
+        // Clone doesn't get updated
         assert.equal(joe.first_name, "Joe");
 
         // Same thing, cached
