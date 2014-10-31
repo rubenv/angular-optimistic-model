@@ -34,9 +34,17 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
     }
 
     function clone(obj) {
-        var newObj = newInstance(obj.constructor, obj);
-        newObj[cloneParent] = obj;
-        return newObj;
+        if (angular.isArray(obj)) {
+            var result = [];
+            for (var i = 0; i < obj.length; i++) {
+                result[i] = clone(obj[i]);
+            }
+            return result;
+        } else {
+            var newObj = newInstance(obj.constructor, obj);
+            newObj[cloneParent] = obj;
+            return newObj;
+        }
     }
 
     function storeInCache(key, data) {
