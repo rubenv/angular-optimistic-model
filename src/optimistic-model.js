@@ -82,17 +82,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
         }
     }
 
-    function mergeInto(target, key, data) {
-        if (!target[key]) {
-            target[key] = data;
-            return;
-        }
-
-        if (target[key] === data) {
-            return;
-        }
-
-        var targetObj = target[key];
+    function merge(data, targetObj) {
         if (angular.isArray(data)) {
             for (var i = 0; i < data.length; i++) {
                 targetObj[i] = data[i];
@@ -105,6 +95,20 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
                 }
             }
         }
+    }
+
+    function mergeInto(target, key, data) {
+        if (!target[key]) {
+            target[key] = data;
+            return;
+        }
+
+        if (target[key] === data) {
+            return;
+        }
+
+        var targetObj = target[key];
+        merge(data, targetObj);
     }
 
     function updateScope(scope, key, data, idField) {
@@ -200,8 +204,9 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
 
         var key = opts.ns + "/" + obj[opts.idField];
         var promise = opts.backend("PUT", key, data).then(function (result) {
-            var obj = newInstance(Class, result);
-            storeInCache(key, obj);
+            var newObj = newInstance(Class, result);
+            storeInCache(key, newObj);
+            merge(newObj, obj);
             return cache[key];
         });
 
@@ -241,17 +246,20 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
     function create(Class, options, obj) {
         var opts = getOptions(Class, options);
         return opts.backend("POST", opts.ns, obj).then(function (data) {
-            var obj = newInstance(Class, data);
-            var key = opts.ns + "/" + obj[opts.idField];
-            storeInCache(key, obj);
+            var newObj = newInstance(Class, data);
+            var key = opts.ns + "/" + newObj[opts.idField];
+            storeInCache(key, newObj);
             var result = cache[key];
+
+            merge(result, obj);
+            obj[cloneParent] = result;
 
             // Add to parent collection (if available)
             var parentColl = cache[opts.ns];
             if (parentColl) {
                 var found = false;
                 for (var i = 0; i < parentColl.length; i++) {
-                    if (parentColl[i][opts.idField] === obj[opts.idField]) {
+                    if (parentColl[i][opts.idField] === newObj[opts.idField]) {
                         found = true;
                     }
                 }
@@ -282,11 +290,18 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
     }
 
     function hasChanges() {
-        if (!this[cloneParent]) {
-            throw new Error("Only works on clones!");
-        }
+        var options = this.constructor.modelOptions;
 
-        return !angular.equals(this, this[cloneParent]);
+        if (!this[options.idField]) {
+            // new object
+            return !angular.equals(this, {});
+        } else {
+            // existing object
+            if (!this[cloneParent]) {
+                throw new Error("Only works on clones!");
+            }
+            return !angular.equals(this, this[cloneParent]);
+        }
     }
 
     function staticMethod(cls, fn, optionsOverride) {
