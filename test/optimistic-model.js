@@ -808,4 +808,112 @@ describe("Model", function () {
         assert.equal(result2.length, 1);
         assert.equal(people.length, 2);
     });
+
+    it("Resets hasChanges after saving a clone", function () {
+        function Document() {}
+        Model.extend(Document, { ns: "/api/documents", useCached: true });
+
+        Document.cache("/api/documents", [
+            {
+                id: 123,
+                content: {
+                    body: "test"
+                }
+            }
+        ]);
+
+        var doc = null;
+        Document.getClone(123).then(function (result) {
+            doc = result;
+        });
+        $rootScope.$digest();
+        assert.equal(doc.content.body, "test");
+        assert.equal(doc.hasChanges(), false);
+
+        doc.content.body = "bla";
+        assert.equal(doc.hasChanges(), true);
+
+        doc.save();
+        $httpBackend.expectPUT("/api/documents/123", { id: 123, content: { body: "bla" } }).respond(200, { id: 123, content: { body: "bla" } });
+        $httpBackend.flush();
+
+        assert.equal(doc.hasChanges(), false);
+    });
+
+    it("Supports hasChanges on a new model", function () {
+        var joe = new Person();
+        assert.equal(joe.hasChanges(), false);
+
+        joe.first_name = "Joe";
+        assert.equal(joe.hasChanges(), true);
+
+        joe.first_name = undefined;
+        assert.equal(joe.hasChanges(), false);
+    });
+
+    it("Should support hasChanges on a new object even after it has been created and has an id", function () {
+        var joe = new Person();
+        joe.first_name = "Joe";
+
+        joe.save();
+        $httpBackend.expectPOST("/api/people", { first_name: "Joe" }).respond(200, { id:123, first_name:"Joe" });
+        $httpBackend.flush();
+
+        assert.equal(joe.id, 123);
+
+        joe.first_name = "Adam";
+        assert.equal(joe.hasChanges(), true);
+
+        joe.save();
+        $httpBackend.expectPUT("/api/people/123", { id:123, first_name: "Adam" }).respond(200, { id:123, first_name:"Adam" });
+        $httpBackend.flush();
+
+        assert.equal(joe.hasChanges(), false);
+
+    });
+
+    it("Should store a clone of a new object in the cache", function () {
+        var joe = new Person();
+        joe.first_name = "Joe";
+
+        joe.save();
+        $httpBackend.expectPOST("/api/people", { first_name: "Joe" }).respond(200, { id:123, first_name:"Joe" });
+        $httpBackend.flush();
+
+        assert.equal(joe.id, 123);
+
+        joe.first_name = "Adam";
+
+        var joeCache = Model.getCache("/api/people/123");
+        assert.equal(joeCache.first_name, "Joe");
+        assert.equal(joeCache.id, 123);
+
+    });
+
+    it("Should update the clone with the response from the server", function () {
+        function Document() {}
+        Model.extend(Document, { ns: "/api/documents", useCached: true });
+
+        Document.cache("/api/documents", [
+            {
+                id: 123,
+                content: {
+                    body: "test"
+                }
+            }
+        ]);
+
+        var doc = null;
+        Document.getClone(123).then(function (result) {
+            doc = result;
+        });
+        $rootScope.$digest();
+
+        doc.content.body = "awesome";
+        doc.save();
+        $httpBackend.expectPUT("/api/documents/123", { id:123, content: { body: "awesome" } }).respond(200, { id:123, content: { body: "awesome" }, generated: 1 });
+        $httpBackend.flush();
+
+        assert.equal(doc.generated, 1);
+    });
 });
