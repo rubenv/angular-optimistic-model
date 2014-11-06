@@ -384,5 +384,3 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
 
     return Model;
 });
-
-// TODO: Use options from class (if available, override from options)
