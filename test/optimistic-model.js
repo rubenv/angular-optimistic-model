@@ -916,4 +916,109 @@ describe("Model", function () {
 
         assert.equal(doc.generated, 1);
     });
+
+    it("Should support storing a snapshot", function () {
+        var joe = new Person();
+        joe.first_name = "Joe";
+
+        assert.equal(joe.hasChanges(), true);
+
+        joe.snapshot();
+
+        assert.equal(joe.hasChanges(), false);
+
+        joe.first_name = "Adam";
+
+        assert.equal(joe.hasChanges(), true);
+    });
+
+    it("Shouldn't support snapshotting on a regular object", function () {
+        function Document() {}
+        Model.extend(Document, { ns: "/api/documents", useCached: true });
+
+        Document.cache("/api/documents", [
+            {
+                id: 123,
+                content: {
+                    body: "test"
+                }
+            }
+        ]);
+
+        var doc = null;
+        Document.get(123).then(function (result) {
+            doc = result;
+        });
+        $rootScope.$digest();
+
+        assert.throw(doc.snapshot);
+    });
+
+    it("Should support snapshotting on a clone", function () {
+        function Document() {}
+        Model.extend(Document, { ns: "/api/documents", useCached: true });
+
+        Document.cache("/api/documents", [
+            {
+                id: 123,
+                content: {
+                    body: "test"
+                }
+            }
+        ]);
+
+        var doc = null;
+        Document.getClone(123).then(function (result) {
+            doc = result;
+        });
+        $rootScope.$digest();
+
+        assert.equal(doc.hasChanges(), false);
+
+        doc.content.body = "awesome";
+
+        assert.equal(doc.hasChanges(), true);
+
+        doc.snapshot();
+
+        assert.equal(doc.hasChanges(), false);
+
+    });
+
+    it("Should support snapshotting together with a save", function () {
+        function Document() {}
+        Model.extend(Document, { ns: "/api/documents", useCached: true });
+
+        Document.cache("/api/documents", [
+            {
+                id: 123,
+                content: {
+                    body: "test"
+                }
+            }
+        ]);
+
+        var doc = null;
+        Document.getClone(123).then(function (result) {
+            doc = result;
+        });
+        $rootScope.$digest();
+
+        assert.equal(doc.hasChanges(), false);
+
+        doc.content.body = "awesome";
+
+        assert.equal(doc.hasChanges(), true);
+
+        doc.snapshot();
+
+        assert.equal(doc.hasChanges(), false);
+
+        doc.save();
+        $httpBackend.expectPUT("/api/documents/123", { id:123, content: { body: "awesome" } }).respond(200, { id:123, content: { body: "awesome" }, generated: 1 });
+        $httpBackend.flush();
+
+        assert.equal(doc.generated, 1);
+        assert.equal(doc.hasChanges(), false);
+    });
 });

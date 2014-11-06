@@ -1,5 +1,6 @@
 angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootScope) {
     var cloneParent = "$$cloneParent";
+    var snapshotField = "$$snapshot";
 
     var defaultOptions = {
         idField: "id",
@@ -27,7 +28,9 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
             obj.fromJSON(data);
         } else {
             for (var field in data) {
-                obj[field] = data[field];
+                if (field[0] !== "$") {
+                    obj[field] = data[field];
+                }
             }
         }
         return obj;
@@ -207,6 +210,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
             var newObj = newInstance(Class, result);
             storeInCache(key, newObj);
             merge(newObj, obj);
+            obj[snapshotField] = undefined;
             return cache[key];
         });
 
@@ -253,6 +257,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
 
             merge(result, obj);
             obj[cloneParent] = result;
+            obj[snapshotField] = undefined;
 
             // Add to parent collection (if available)
             var parentColl = cache[opts.ns];
@@ -291,17 +296,39 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
 
     function hasChanges() {
         var options = this.constructor.modelOptions;
+        var base = {};
 
         if (!this[options.idField]) {
             // new object
-            return !angular.equals(this, {});
+
+            if (this[snapshotField]) {
+                base = this[snapshotField];
+            }
+            return !angular.equals(this, base);
         } else {
             // existing object
             if (!this[cloneParent]) {
                 throw new Error("Only works on clones!");
             }
-            return !angular.equals(this, this[cloneParent]);
+
+            base = this[cloneParent];
+
+            if (this[snapshotField]) {
+                base = this[snapshotField];
+            }
+
+            return !angular.equals(this, base);
         }
+    }
+
+    function snapshot() {
+        var options = this.constructor.modelOptions;
+
+        if (this[options.idField] && !this[cloneParent]) {
+            throw new Error("Only works on clones!");
+        }
+
+        this[snapshotField] = clone(this);
     }
 
     function staticMethod(cls, fn, optionsOverride) {
@@ -340,6 +367,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
             proto.create = method(create);
             proto.save = save;
             proto.hasChanges = hasChanges;
+            proto.snapshot = snapshot;
         },
 
         clear: function () {
