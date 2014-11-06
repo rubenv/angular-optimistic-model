@@ -300,11 +300,9 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
 
         if (!this[options.idField]) {
             // new object
-
             if (this[snapshotField]) {
                 base = this[snapshotField];
             }
-
         } else {
             // existing object
             if (!this[cloneParent]) {
@@ -312,11 +310,9 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
             }
 
             base = this[cloneParent];
-
             if (this[snapshotField]) {
                 base = this[snapshotField];
             }
-
         }
 
         return !angular.equals(this, base);
