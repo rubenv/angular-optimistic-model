@@ -951,7 +951,7 @@ describe("Model", function () {
         });
         $rootScope.$digest();
 
-        assert.throw(doc.snapshot);
+        assert.throw(function () { doc.snapshot(); });
     });
 
     it("Should support snapshotting on a clone", function () {

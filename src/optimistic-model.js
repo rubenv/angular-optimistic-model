@@ -210,7 +210,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
             var newObj = newInstance(Class, result);
             storeInCache(key, newObj);
             merge(newObj, obj);
-            obj[snapshotField] = undefined;
+            delete obj[snapshotField];
             return cache[key];
         });
 
@@ -257,7 +257,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
 
             merge(result, obj);
             obj[cloneParent] = result;
-            obj[snapshotField] = undefined;
+            delete obj[snapshotField];
 
             // Add to parent collection (if available)
             var parentColl = cache[opts.ns];
@@ -304,7 +304,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
             if (this[snapshotField]) {
                 base = this[snapshotField];
             }
-            return !angular.equals(this, base);
+
         } else {
             // existing object
             if (!this[cloneParent]) {
@@ -317,8 +317,9 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
                 base = this[snapshotField];
             }
 
-            return !angular.equals(this, base);
         }
+
+        return !angular.equals(this, base);
     }
 
     function snapshot() {
