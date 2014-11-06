@@ -300,11 +300,9 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
 
         if (!this[options.idField]) {
             // new object
-
             if (this[snapshotField]) {
                 base = this[snapshotField];
             }
-
         } else {
             // existing object
             if (!this[cloneParent]) {
@@ -312,11 +310,9 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
             }
 
             base = this[cloneParent];
-
             if (this[snapshotField]) {
                 base = this[snapshotField];
             }
-
         }
 
         return !angular.equals(this, base);
@@ -388,5 +384,3 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
 
     return Model;
 }]);
-
-// TODO: Use options from class (if available, override from options)
