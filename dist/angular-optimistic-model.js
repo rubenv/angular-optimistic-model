@@ -196,6 +196,9 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
 
     function getSync(Class, options, id) {
         var opts = getOptions(Class, options);
+        if (!opts.useCached) {
+            throw new Error("Can only use getSync on models that have useCached: true");
+        }
         var key = opts.ns + "/" + id;
         return cache[key];
     }

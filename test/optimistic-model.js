@@ -1041,4 +1041,8 @@ describe("Model", function () {
         var doc2 = fn(123);
         assert.equal(doc, doc2);
     });
+
+    it("Cannot use getSync unless the model has useCached: true", function () {
+        assert.throw(function () { Person.getSync(123); });
+    });
 });
