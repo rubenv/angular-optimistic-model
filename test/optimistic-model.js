@@ -1021,4 +1021,24 @@ describe("Model", function () {
         assert.equal(doc.generated, 1);
         assert.equal(doc.hasChanges(), false);
     });
+
+    it("Can use getSync on cached models", function () {
+        function Document() {}
+        Model.extend(Document, { ns: "/api/documents", useCached: true });
+
+        Document.cache("/api/documents", [
+            {
+                id: 123,
+                content: "test"
+            }
+        ]);
+
+        var doc = Document.getSync(123);
+        assert.equal(doc.content, "test");
+
+        // Also works dereferenced
+        var fn = Document.getSync;
+        var doc2 = fn(123);
+        assert.equal(doc, doc2);
+    });
 });

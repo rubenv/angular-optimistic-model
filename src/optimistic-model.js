@@ -194,6 +194,12 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
         return promise;
     }
 
+    function getSync(Class, options, id) {
+        var opts = getOptions(Class, options);
+        var key = opts.ns + "/" + id;
+        return cache[key];
+    }
+
     function update(Class, options, obj, fields) {
         var opts = getOptions(Class, options);
 
@@ -352,6 +358,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
             cls.get = staticMethod(cls, get);
             cls.getCached = staticMethod(cls, get, { useCached: true });
             cls.getClone = staticMethod(cls, get, { cloned: true });
+            cls.getSync = staticMethod(cls, getSync);
             cls.update = staticMethod(cls, update);
             cls.delete = staticMethod(cls, destroy);
             cls.create = staticMethod(cls, create);
