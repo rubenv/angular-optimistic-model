@@ -390,6 +390,8 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
         update: update,
         delete: destroy,
         create: create,
+
+        mkToScope: mkToScopeMethod,
     };
 
     return Model;
