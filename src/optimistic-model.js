@@ -175,8 +175,8 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
         return promise;
     }
 
-    function get(Class, options, id) {
-        var opts = getOptions(Class, options);
+    function get(Class, options, id, extra) {
+        var opts = getOptions(Class, options, extra);
         var key = opts.ns + "/" + id;
         var cloned = !!opts.cloned;
         var promise = null;
