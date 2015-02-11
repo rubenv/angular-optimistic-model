@@ -5,6 +5,10 @@ describe("Model", function () {
     var Person;
     var callAccount;
 
+    function onlyPersonsWithR(person) {
+        return person.first_name.indexOf("R") === 0;
+    }
+
     beforeEach(module("rt.optimisticmodel"));
 
     beforeEach(inject(function ($injector, $http) {
@@ -189,6 +193,72 @@ describe("Model", function () {
         assert.equal(scope.person, result);
     });
 
+    it("toScope: Scope gets pre-filled if we already have cached copy (+filter)", function () {
+        // Fill cache
+        Person.getAll();
+        $httpBackend.expectGET("/api/people").respond(200, [
+            { id: 123, first_name: "Ruben" },
+            { id: 124, first_name: "Kim" }
+        ]);
+        $httpBackend.flush();
+
+        // Request it again somewhere else
+        var scope = $rootScope.$new();
+        Person.getAll().toScope(scope, "people", onlyPersonsWithR);
+
+        // Should be on scope now
+        assert.equal(scope.people.length, 1);
+        assert.equal(scope.people[0].constructor, Person);
+        assert.equal(scope.people[0].id, 123);
+        assert.equal(scope.people[0].first_name, "Ruben");
+
+        // Scope gets updated when results come in
+        $httpBackend.expectGET("/api/people").respond(200, [
+            { id: 124, first_name: "Joe" },
+            { id: 125, first_name: "Ron" }
+        ]);
+        $httpBackend.flush();
+        assert.equal(scope.people.length, 1);
+        assert.equal(scope.people[0].constructor, Person);
+        assert.equal(scope.people[0].id, 125);
+        assert.equal(scope.people[0].first_name, "Ron");
+    });
+
+    it("toScope: Updates scope arrays in place (+filter)", function () {
+        // Fill cache
+        var result = null;
+        Person.getAll().then(function (obj) {
+            result = obj;
+        });
+        $httpBackend.expectGET("/api/people").respond(200, [
+            { id: 123, first_name: "Ruben" },
+            { id: 124, first_name: "Joe" }
+        ]);
+        $httpBackend.flush();
+
+        // Fetch array
+        var scope = $rootScope.$new();
+        var result2 = null;
+        Person.getAll().toScope(scope, "people", onlyPersonsWithR).then(function (obj) {
+            result2 = obj;
+            assert.equal(result2.length, 1);
+        });
+        assert.equal(scope.people[0].first_name, "Ruben");
+
+        // Respond to call
+        $httpBackend.expectGET("/api/people").respond(200, [
+            { id: 123, first_name: "Bart" },
+            { id: 124, first_name: "Ron" }
+        ]);
+        $httpBackend.flush();
+
+        assert.equal(scope.people[0].id, 124);
+        assert.equal(scope.people[0].first_name, "Ron");
+        assert.equal(scope.people[0].constructor, Person);
+        assert.equal(scope.people, result2);
+        assert.notEqual(result2, result);
+    });
+
     it("Can disable pre-populate", function () {
         function Objects() {}
 
@@ -316,6 +386,8 @@ describe("Model", function () {
         $httpBackend.expectDELETE("/api/people/124").respond(200);
         $httpBackend.flush();
 
+        assert.equal(scope.people.length, 1);
+
         var scope2 = {};
         Person.getAll().toScope(scope2, "people");
 
@@ -325,6 +397,40 @@ describe("Model", function () {
         assert.equal(scope2.people[0].id, 123);
         assert.equal(scope2.people[0].first_name, "Ruben");
 
+        // Flush call
+        $httpBackend.expectGET("/api/people").respond(200, [
+            { id: 123, first_name: "Ruben" }
+        ]);
+        $httpBackend.flush();
+    });
+
+    it("Delete removes the object from the parent collection, even with a filter", function () {
+        var scope = $rootScope.$new();
+        Person.getAll().toScope(scope, "people", onlyPersonsWithR);
+        $httpBackend.expectGET("/api/people").respond(200, [
+            { id: 123, first_name: "Ruben" },
+            { id: 124, first_name: "Test" },
+            { id: 125, first_name: "Ron" },
+            { id: 126, first_name: "Kim" }
+        ]);
+        $httpBackend.flush();
+
+        // Got loaded, delete it
+        assert.equal(scope.people.length, 2);
+        scope.people[1].delete();
+        $httpBackend.expectDELETE("/api/people/125").respond(200);
+        $httpBackend.flush();
+
+        assert.equal(scope.people.length, 1);
+
+        var scope2 = $rootScope.$new();
+        Person.getAll().toScope(scope2, "people", onlyPersonsWithR);
+
+        // Should be on scope now, before request loads
+        assert.equal(scope2.people.length, 1);
+        assert.equal(scope2.people[0].constructor, Person);
+        assert.equal(scope2.people[0].id, 123);
+        assert.equal(scope2.people[0].first_name, "Ruben");
         // Flush call
         $httpBackend.expectGET("/api/people").respond(200, [
             { id: 123, first_name: "Ruben" }
@@ -358,6 +464,51 @@ describe("Model", function () {
             { id: 123, first_name: "Ruben" }
         ]);
         $httpBackend.flush();
+    });
+
+    it("Delete removes the object from the parent collection (static) (+filter)", function () {
+        Person.getAll();
+        $httpBackend.expectGET("/api/people").respond(200, [
+            { id: 123, first_name: "Ruben" },
+            { id: 124, first_name: "Test" },
+            { id: 125, first_name: "Ron" },
+            { id: 126, first_name: "Kim" }
+        ]);
+        $httpBackend.flush();
+
+        Person.delete(124);
+        $httpBackend.expectDELETE("/api/people/124").respond(200);
+        $httpBackend.flush();
+
+        var scope = $rootScope.$new();
+        Person.getAll().toScope(scope, "people", onlyPersonsWithR);
+
+        // Should be on scope now, before request loads
+        assert.equal(scope.people.length, 2);
+        assert.equal(scope.people[0].constructor, Person);
+        assert.equal(scope.people[0].id, 123);
+        assert.equal(scope.people[0].first_name, "Ruben");
+        assert.equal(scope.people[1].constructor, Person);
+        assert.equal(scope.people[1].id, 125);
+        assert.equal(scope.people[1].first_name, "Ron");
+
+        // Flush call
+        $httpBackend.expectGET("/api/people").respond(200, [
+            { id: 123, first_name: "Ruben" },
+            { id: 125, first_name: "Ron" },
+            { id: 126, first_name: "Kim" }
+        ]);
+        $httpBackend.flush();
+
+
+        Person.delete(125);
+        $httpBackend.expectDELETE("/api/people/125").respond(200);
+        $httpBackend.flush();
+
+        assert.equal(scope.people.length, 1);
+        assert.equal(scope.people[0].constructor, Person);
+        assert.equal(scope.people[0].id, 123);
+        assert.equal(scope.people[0].first_name, "Ruben");
     });
 
     it("Can create objects", function () {
@@ -399,6 +550,47 @@ describe("Model", function () {
         assert.equal(scope.people[1].constructor, Person);
         assert.equal(scope.people[1].id, 124);
         assert.equal(scope.people[1].first_name, "Test");
+
+        // Flush call
+        $httpBackend.expectGET("/api/people").respond(200, [
+            { id: 123, first_name: "Ruben" },
+            { id: 124, first_name: "Test" }
+        ]);
+        $httpBackend.flush();
+    });
+
+    it("Create adds the object to the parent collection (+filter)", function () {
+        var scope = $rootScope.$new();
+        Person.getAll().toScope(scope, "people", onlyPersonsWithR);
+        $httpBackend.expectGET("/api/people").respond(200, [
+            { id: 124, first_name: "Test" }
+        ]);
+        $httpBackend.flush();
+
+        // Should be on scope now, before request loads
+        assert.equal(scope.people.length, 0);
+
+        Person.create({ first_name: "Ruben" });
+        $httpBackend.expectPOST("/api/people", { first_name: "Ruben" }).respond({
+            id: 123,
+            first_name: "Ruben"
+        });
+        $httpBackend.flush();
+
+        // Should be on scope now, before request loads
+        assert.equal(scope.people.length, 1);
+        assert.equal(scope.people[0].constructor, Person);
+        assert.equal(scope.people[0].id, 123);
+        assert.equal(scope.people[0].first_name, "Ruben");
+
+        var scope2 = $rootScope.$new();
+        Person.getAll().toScope(scope2, "people", onlyPersonsWithR);
+
+        // Should be on scope now, before request loads
+        assert.equal(scope2.people.length, 1);
+        assert.equal(scope2.people[0].constructor, Person);
+        assert.equal(scope2.people[0].id, 123);
+        assert.equal(scope2.people[0].first_name, "Ruben");
 
         // Flush call
         $httpBackend.expectGET("/api/people").respond(200, [
@@ -805,6 +997,42 @@ describe("Model", function () {
         });
         $httpBackend.expectGET("/api/people").respond(200, [{ id: 123, first_name: "Bob" }]);
         $httpBackend.flush();
+        assert.equal(result2.length, 1);
+        assert.equal(people.length, 2);
+    });
+
+    it("Can get a cloned version for a complete collection (+filter)", function () {
+        var joe = null;
+        var people = null;
+        var scope = $rootScope.$new();
+        Person.getAll({ cloned: true }).toScope(scope, "persons", onlyPersonsWithR).then(function (p) {
+            joe = p[0];
+            joe.first_name = "Joe";
+
+            people = p;
+            people.push({ first_name: "Rick" });
+        });
+        $httpBackend.expectGET("/api/people").respond(200, [{ id: 123, first_name: "Ruben" }, { id: 124, first_name: "Jon" }]);
+        $httpBackend.flush();
+
+        var result = null;
+        Person.get(123).then(function (obj) {
+            result = obj;
+        });
+        $httpBackend.expectGET("/api/people/123").respond(200, { id: 123, first_name: "Ruben" });
+        $httpBackend.flush();
+        assert.equal(result.first_name, "Ruben");
+        assert.equal(joe.first_name, "Joe");
+        assert.equal(people.length, 2);
+
+        var result2 = null;
+        Person.getAll().then(function (p) {
+            result2 = p;
+        });
+
+        $httpBackend.expectGET("/api/people").respond(200, [{ id: 123, first_name: "Bob" }]);
+        $httpBackend.flush();
+
         assert.equal(result2.length, 1);
         assert.equal(people.length, 2);
     });

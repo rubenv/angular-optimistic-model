@@ -125,16 +125,43 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
         mergeInto(scope, key, data);
     }
 
+    function execFilter(arr, filterFn) {
+        var result = [];
+        if (angular.isArray(arr) && angular.isFunction(filterFn)) {
+            var l = arr.length;
+            for (var i = 0 ; i < l ; i++) {
+                if (filterFn(arr[i])) {
+                    result.push(arr[i]);
+                }
+            }
+        } else {
+            result = arr;
+        }
+
+        return result;
+    }
+
+
     function mkToScopeMethod(promise, key, cloned, idField) {
         cloned = !!cloned;
-        promise.toScope = function (scope, field) {
+        promise.toScope = function (scope, field, filterFn) {
             if (cache[key]) {
-                var obj = cache[key];
+                var obj = execFilter(cache[key], filterFn);
                 updateScope(scope, field, cloned ? clone(obj) : obj, idField);
             }
 
             promise.then(function (result) {
-                updateScope(scope, field, result, idField);
+                updateScope(scope, field, execFilter(result, filterFn), idField);
+
+                // if a cloned version is requested, we don't want to do updates
+                if (!cloned && angular.isArray(result) && angular.isFunction(filterFn)) {
+                    scope.$on("modelCached", function (event, cacheKey, cacheObj) {
+                        if (key === cacheKey) {
+                            updateScope(scope, field, execFilter(cacheObj, filterFn), idField);
+                        }
+                    });
+                }
+
             });
 
             return promise.then(function () {
@@ -248,6 +275,8 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
                 if (index > -1) {
                     parentColl.splice(index, 1);
                 }
+
+                $rootScope.$broadcast("modelCached", opts.ns, parentColl);
             }
         });
 
@@ -281,6 +310,8 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
                 if (!found) {
                     parentColl.push(result);
                 }
+
+                $rootScope.$broadcast("modelCached", opts.ns, parentColl);
             }
 
             return result;
