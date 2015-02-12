@@ -141,7 +141,6 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
         return result;
     }
 
-
     function mkToScopeMethod(promise, key, cloned, idField) {
         cloned = !!cloned;
         promise.toScope = function (scope, field, filterFn) {
