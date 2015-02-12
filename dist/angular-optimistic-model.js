@@ -125,19 +125,18 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
         mergeInto(scope, key, data);
     }
 
-    function execFilter(arr, filterFn) {
-        var result = [];
-        if (angular.isArray(arr) && angular.isFunction(filterFn)) {
-            var l = arr.length;
-            for (var i = 0 ; i < l ; i++) {
-                if (filterFn(arr[i])) {
-                    result.push(arr[i]);
-                }
-            }
-        } else {
-            result = arr;
+    function execFilter(arr, fn) {
+        if (!angular.isArray(arr) || !angular.isFunction(fn)) {
+            return arr;
         }
 
+        var result = [];
+        var l = arr.length;
+        for (var i = 0 ; i < l ; i++) {
+            if (fn(arr[i])) {
+                result.push(arr[i]);
+            }
+        }
         return result;
     }
 
