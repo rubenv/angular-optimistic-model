@@ -1,6 +1,7 @@
 angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", function ($q, $rootScope) {
     var cloneParent = "$$cloneParent";
     var snapshotField = "$$snapshot";
+    var modelCachedEvent = "modelCached";
 
     var defaultOptions = {
         idField: "id",
@@ -52,7 +53,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
 
     function storeInCache(key, data) {
         mergeInto(cache, key, data);
-        $rootScope.$broadcast("modelCached", key, cache[key]);
+        $rootScope.$broadcast(modelCachedEvent, key, cache[key]);
     }
 
     function fillCache(Class, options, key, data) {
@@ -154,7 +155,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
 
                 // if a cloned version is requested, we don't want to do updates
                 if (!cloned && angular.isArray(result) && angular.isFunction(filterFn)) {
-                    scope.$on("modelCached", function (event, cacheKey, cacheObj) {
+                    scope.$on(modelCachedEvent, function (event, cacheKey, cacheObj) {
                         if (key === cacheKey) {
                             updateScope(scope, field, execFilter(cacheObj, filterFn), idField);
                         }
@@ -275,7 +276,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
                     parentColl.splice(index, 1);
                 }
 
-                $rootScope.$broadcast("modelCached", opts.ns, parentColl);
+                $rootScope.$broadcast(modelCachedEvent, opts.ns, parentColl);
             }
         });
 
@@ -310,7 +311,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
                     parentColl.push(result);
                 }
 
-                $rootScope.$broadcast("modelCached", opts.ns, parentColl);
+                $rootScope.$broadcast(modelCachedEvent, opts.ns, parentColl);
             }
 
             return result;
