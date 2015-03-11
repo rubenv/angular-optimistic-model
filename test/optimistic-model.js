@@ -1084,7 +1084,7 @@ describe("Model", function () {
         joe.first_name = "Joe";
 
         joe.save();
-        $httpBackend.expectPOST("/api/people", { first_name: "Joe" }).respond(200, { id:123, first_name:"Joe" });
+        $httpBackend.expectPOST("/api/people", { first_name: "Joe" }).respond(200, { id: 123, first_name:"Joe" });
         $httpBackend.flush();
 
         assert.equal(joe.id, 123);
@@ -1093,7 +1093,7 @@ describe("Model", function () {
         assert.equal(joe.hasChanges(), true);
 
         joe.save();
-        $httpBackend.expectPUT("/api/people/123", { id:123, first_name: "Adam" }).respond(200, { id:123, first_name:"Adam" });
+        $httpBackend.expectPUT("/api/people/123", { id: 123, first_name: "Adam" }).respond(200, { id: 123, first_name:"Adam" });
         $httpBackend.flush();
 
         assert.equal(joe.hasChanges(), false);
@@ -1105,7 +1105,7 @@ describe("Model", function () {
         joe.first_name = "Joe";
 
         joe.save();
-        $httpBackend.expectPOST("/api/people", { first_name: "Joe" }).respond(200, { id:123, first_name:"Joe" });
+        $httpBackend.expectPOST("/api/people", { first_name: "Joe" }).respond(200, { id: 123, first_name:"Joe" });
         $httpBackend.flush();
 
         assert.equal(joe.id, 123);
@@ -1139,7 +1139,7 @@ describe("Model", function () {
 
         doc.content.body = "awesome";
         doc.save();
-        $httpBackend.expectPUT("/api/documents/123", { id:123, content: { body: "awesome" } }).respond(200, { id:123, content: { body: "awesome" }, generated: 1 });
+        $httpBackend.expectPUT("/api/documents/123", { id: 123, content: { body: "awesome" } }).respond(200, { id: 123, content: { body: "awesome" }, generated: 1 });
         $httpBackend.flush();
 
         assert.equal(doc.generated, 1);
@@ -1243,11 +1243,49 @@ describe("Model", function () {
         assert.equal(doc.hasChanges(), false);
 
         doc.save();
-        $httpBackend.expectPUT("/api/documents/123", { id:123, content: { body: "awesome" } }).respond(200, { id:123, content: { body: "awesome" }, generated: 1 });
+        $httpBackend.expectPUT("/api/documents/123", { id: 123, content: { body: "awesome" } }).respond(200, { id: 123, content: { body: "awesome" }, generated: 1 });
         $httpBackend.flush();
 
         assert.equal(doc.generated, 1);
         assert.equal(doc.hasChanges(), false);
+    });
+
+    it("Snapshot tracking should stay active when saving", function () {
+        function Document() {}
+        Model.extend(Document, { ns: "/api/documents", useCached: true });
+
+        Document.cache("/api/documents", [
+            {
+                id: 123,
+                content: {
+                    body: "test"
+                }
+            }
+        ]);
+
+        var doc = null;
+        Document.getClone(123).then(function (result) {
+            doc = result;
+        });
+        $rootScope.$digest();
+
+        assert.equal(doc.hasChanges(), false);
+
+        doc.content.body = "awesome";
+
+        assert.equal(doc.hasChanges(), true);
+
+        doc.snapshot();
+
+        assert.equal(doc.hasChanges(), false);
+
+        doc.save();
+        $httpBackend.expectPUT("/api/documents/123", { id: 123, content: { body: "awesome" } }).respond(200, { id: 123, content: { body: "awesome" } });
+        $httpBackend.flush();
+
+        assert.equal(doc.hasChanges(), false);
+        doc.content.body = "new";
+        assert.equal(doc.hasChanges(), true);
     });
 
     it("Can use getSync on cached models", function () {

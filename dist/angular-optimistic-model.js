@@ -321,6 +321,8 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
         var self = this;
         var options = self.constructor.modelOptions;
 
+        var hasSnapshot = !!self[snapshotField];
+
         var promise = null;
         if (!self[options.idField]) {
             promise = self.create();
@@ -330,7 +332,14 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
 
         emit("Save", self, promise);
 
-        return promise;
+        if (hasSnapshot) {
+            return promise.then(function (r) {
+                self.snapshot();
+                return r;
+            });
+        } else {
+            return promise;
+        }
     }
 
     function hasChanges() {
