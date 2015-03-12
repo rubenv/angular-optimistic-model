@@ -250,6 +250,9 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
         });
 
         mkToScopeMethod(promise, key);
+
+        emit("Update", obj, promise);
+
         return promise;
     }
 
@@ -286,7 +289,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
 
     function create(Class, options, obj) {
         var opts = getOptions(Class, options);
-        return opts.backend("POST", opts.ns, obj).then(function (data) {
+        var promise = opts.backend("POST", opts.ns, obj).then(function (data) {
             var newObj = newInstance(Class, data);
             var key = opts.ns + "/" + newObj[opts.idField];
             storeInCache(key, newObj);
@@ -315,6 +318,10 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
 
             return result;
         });
+
+        emit("Create", obj, promise);
+
+        return promise;
     }
 
     function save() {
