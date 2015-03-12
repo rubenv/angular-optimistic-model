@@ -289,6 +289,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
 
     function create(Class, options, obj) {
         var opts = getOptions(Class, options);
+        obj = obj.constructor === Class ? obj : newInstance(Class, obj);
         var promise = opts.backend("POST", opts.ns, obj).then(function (data) {
             var newObj = newInstance(Class, data);
             var key = opts.ns + "/" + newObj[opts.idField];
