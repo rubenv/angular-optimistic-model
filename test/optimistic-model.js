@@ -1,4 +1,5 @@
 describe("Model", function () {
+    var $q;
     var $httpBackend;
     var $rootScope;
     var Model = null;
@@ -14,6 +15,7 @@ describe("Model", function () {
     beforeEach(inject(function ($injector, $http) {
         $httpBackend = $injector.get("$httpBackend");
         $rootScope = $injector.get("$rootScope");
+        $q = $injector.get("$q");
 
         callAccount = function callAccount(method, url, data) {
             return $http({
@@ -1310,5 +1312,29 @@ describe("Model", function () {
 
     it("Cannot use getSync unless the model has useCached: true", function () {
         assert.throw(function () { Person.getSync(123); });
+    });
+
+    it("Can register custom backend", function () {
+        var lastOperation = null;
+
+        function Document() {}
+        Model.extend(Document, {
+            ns: "/api/documents",
+            backend: function (method, url, data, operation) {
+                assert.equal(method, "GET");
+                assert.equal(url, "/api/documents");
+                assert.equal(data, null);
+                lastOperation = operation;
+
+                var deferred = $q.defer();
+                deferred.resolve();
+                return deferred.promise;
+            },
+        });
+
+        Document.getAll();
+
+        // Receives operation
+        assert.equal(lastOperation, "getAll");
     });
 });
