@@ -29,7 +29,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
             obj.fromJSON(data);
         } else {
             for (var field in data) {
-                if (field[0] !== "$") {
+                if (field[0] !== "$" && !angular.isFunction(data[field])) {
                     obj[field] = data[field];
                 }
             }
