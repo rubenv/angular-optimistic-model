@@ -29,7 +29,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
             obj.fromJSON(data);
         } else {
             for (var field in data) {
-                if (field[0] !== "$") {
+                if (field[0] !== "$" && !angular.isFunction(data[field])) {
                     obj[field] = data[field];
                 }
             }
@@ -192,7 +192,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
             promise = mkResolved(cloned ? clone(cache[key]) : cache[key]);
         } else {
             promise = opts.backend("GET", key, null, "getAll").then(function (data) {
-                fillCache(Class, options, key, data);
+                fillCache(Class, opts, key, data);
                 return cloned ? clone(cache[key]) : cache[key];
             });
         }
@@ -211,7 +211,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
             promise = mkResolved(cloned ? clone(cache[key]) : cache[key]);
         } else {
             promise = opts.backend("GET", key, null, "get").then(function (result) {
-                fillCache(Class, options, key, result);
+                fillCache(Class, opts, key, result);
                 return cloned ? clone(cache[key]) : cache[key];
             });
         }
