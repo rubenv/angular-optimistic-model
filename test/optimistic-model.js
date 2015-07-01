@@ -1337,4 +1337,25 @@ describe("Model", function () {
         // Receives operation
         assert.equal(lastOperation, "getAll");
     });
+
+    it("Correctly passes options to cache", function () {
+        var result = [
+            { id: 123 },
+        ];
+
+        function Document() {}
+        Model.extend(Document, {
+            backend: function () {
+                var deferred = $q.defer();
+                deferred.resolve(result);
+                return deferred.promise;
+            },
+        });
+
+        Document.getAll({ ns: "test", useCached: true, populateChildren: false });
+        $rootScope.$digest();
+
+        assert.isArray(Model.getCache("test"));
+        assert.equal(Model.getCache("test/123"), undefined);
+    });
 });
