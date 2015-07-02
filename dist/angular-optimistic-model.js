@@ -17,20 +17,26 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
     }
 
     function newInstance(Class, data) {
+        var field;
         var obj = new Class();
 
         if (data && data.toJSON) {
             data = data.toJSON();
         }
 
-        data = angular.copy(data);
-
         if (obj.fromJSON) {
-            obj.fromJSON(data);
-        } else {
-            for (var field in data) {
+            var newData = {};
+            for (field in data) {
                 if (field[0] !== "$" && !angular.isFunction(data[field])) {
-                    obj[field] = data[field];
+                    newData[field] = angular.copy(data[field]);
+                }
+
+            }
+            obj.fromJSON(newData);
+        } else {
+            for (field in data) {
+                if (field[0] !== "$" && !angular.isFunction(data[field])) {
+                    obj[field] = angular.copy(data[field]);
                 }
             }
         }
@@ -371,7 +377,9 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
             }
         }
 
-        return !angular.equals(this, base);
+        // Comparing to a clone ensures that we take any custom
+        // toJSON implementations into account.
+        return !angular.equals(clone(this), base);
     }
 
     function snapshot() {

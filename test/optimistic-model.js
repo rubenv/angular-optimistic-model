@@ -1358,4 +1358,23 @@ describe("Model", function () {
         assert.isArray(Model.getCache("test"));
         assert.equal(Model.getCache("test/123"), undefined);
     });
+
+    it("Custom toJSON should not affect hasChanges", function () {
+        function Document() {}
+        Model.extend(Document);
+
+
+        var doc = new Document();
+        doc.a = 1;
+        doc.b = 2;
+
+        doc.snapshot();
+        assert.equal(doc.hasChanges(), false);
+
+        // Also works with custom toJSON.
+        Document.prototype.toJSON = function () { return { a: this.a }; };
+
+        doc.snapshot();
+        assert.equal(doc.hasChanges(), false);
+    });
 });
