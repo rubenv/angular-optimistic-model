@@ -26,8 +26,8 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
 
         if (obj.fromJSON) {
             var newData = {};
-            for (field in obj) {
-                if (field[0] !== "$") {
+            for (field in data) {
+                if (field[0] !== "$" && data.hasOwnProperty(field)) {
                     newData[field] = angular.copy(data[field]);
                 }
 
@@ -35,7 +35,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
             obj.fromJSON(newData);
         } else {
             for (field in data) {
-                if (field[0] !== "$") {
+                if (field[0] !== "$" && data.hasOwnProperty(field)) {
                     obj[field] = angular.copy(data[field]);
                 }
             }
