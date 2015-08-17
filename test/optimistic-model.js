@@ -1290,6 +1290,31 @@ describe("Model", function () {
         assert.equal(doc.hasChanges(), true);
     });
 
+    it("Can use getAllSync on cached models", function () {
+        function Document() {}
+        Model.extend(Document, { ns: "/api/documents", useCached: true });
+
+        Document.cache("/api/documents", [
+            {
+                id: 123,
+                content: "test"
+            }
+        ]);
+
+        var docs = Document.getAllSync();
+        assert.equal(docs.length, 1);
+        assert.equal(docs[0].content, "test");
+
+        // Also works dereferenced
+        var fn = Document.getAllSync;
+        var docs2 = fn();
+        assert.equal(docs, docs2);
+    });
+
+    it("Cannot use getAllSync unless the model has useCached: true", function () {
+        assert.throw(function () { Person.getAllSync(); });
+    });
+
     it("Can use getSync on cached models", function () {
         function Document() {}
         Model.extend(Document, { ns: "/api/documents", useCached: true });

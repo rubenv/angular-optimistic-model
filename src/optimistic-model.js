@@ -226,6 +226,15 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
         return promise;
     }
 
+    function getAllSync(Class, options) {
+        var opts = getOptions(Class, options);
+        if (!opts.useCached) {
+            throw new Error("Can only use getAllSync on models that have useCached: true");
+        }
+        var key = opts.ns;
+        return cache[key];
+    }
+
     function getSync(Class, options, id) {
         var opts = getOptions(Class, options);
         if (!opts.useCached) {
@@ -416,6 +425,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
             cls.get = staticMethod(cls, get);
             cls.getCached = staticMethod(cls, get, { useCached: true });
             cls.getClone = staticMethod(cls, get, { cloned: true });
+            cls.getAllSync = staticMethod(cls, getAllSync);
             cls.getSync = staticMethod(cls, getSync);
             cls.update = staticMethod(cls, update);
             cls.delete = staticMethod(cls, destroy);
