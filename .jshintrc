@@ -15,6 +15,7 @@
     "undef": true,
     "unused": true,
     "predef": [
-        "angular"
+        "angular",
+        "escape"
     ]
 }

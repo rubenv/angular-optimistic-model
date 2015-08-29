@@ -1388,7 +1388,6 @@ describe("Model", function () {
         function Document() {}
         Model.extend(Document);
 
-
         var doc = new Document();
         doc.a = 1;
         doc.b = 2;
@@ -1401,5 +1400,45 @@ describe("Model", function () {
 
         doc.snapshot();
         assert.equal(doc.hasChanges(), false);
+    });
+
+    it("Supports query arguments to getAll()", function () {
+        var lastOperation = null;
+
+        function Document() {}
+        Model.extend(Document, {
+            ns: "/api/documents",
+            backend: function (method, url, data, operation) {
+                assert.equal(method, "GET");
+                assert.equal(url, "/api/documents?filter=a%20filter&limit=10");
+                assert.equal(data, null);
+                lastOperation = operation;
+
+                var deferred = $q.defer();
+                deferred.resolve([
+                    {
+                        id: 123
+                    }
+                ]);
+                return deferred.promise;
+            },
+            useCached: true,
+        });
+
+        var query = {
+            limit: 10,
+            filter: "a filter",
+        };
+
+        Document.getAll({ query: query });
+        $rootScope.$digest();
+
+        // Receives operation
+        assert.equal(lastOperation, "getAll");
+
+        // Should cache correctly
+        var result = Document.getAllSync({ query: query });
+        assert.equal(result.length, 1);
+        assert.equal(result[0].id, 123);
     });
 });

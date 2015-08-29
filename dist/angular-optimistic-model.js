@@ -181,6 +181,21 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
         return deferred.promise;
     }
 
+    function mkUrl(ns, query) {
+        var url = ns;
+        if (query) {
+            var keys = Object.keys(query);
+            keys.sort();
+            var args = [];
+            for (var i = 0; i < keys.length; i++) {
+                var key = keys[i];
+                args.push(key + "=" + escape(query[key]));
+            }
+            url += "?" + args.join("&");
+        }
+        return url;
+    }
+
     function emit(event, obj, promise) {
         $rootScope.$broadcast("model" + event + "Started", obj, promise);
         promise.finally(function () {
@@ -190,7 +205,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
 
     function getAll(Class, options, extra) {
         var opts = getOptions(Class, options, extra);
-        var key = opts.ns;
+        var key = mkUrl(opts.ns, opts.query);
         var cloned = !!opts.cloned;
         var promise = null;
 
@@ -231,7 +246,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
         if (!opts.useCached) {
             throw new Error("Can only use getAllSync on models that have useCached: true");
         }
-        var key = opts.ns;
+        var key = mkUrl(opts.ns, opts.query);
         return cache[key];
     }
 
@@ -402,8 +417,8 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
     }
 
     function staticMethod(cls, fn, optionsOverride) {
-        return function () {
-            var options = angular.extend({}, cls.modelOptions, optionsOverride);
+        return function (callOptions) {
+            var options = angular.extend({}, cls.modelOptions, optionsOverride, callOptions);
             return fn.apply(null, [cls, options].concat(Array.prototype.slice.call(arguments, 0)));
         };
     }
