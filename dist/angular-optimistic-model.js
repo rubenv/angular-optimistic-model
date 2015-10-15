@@ -436,6 +436,10 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
         },
 
         extend: function (cls, options) {
+            if (cls.modelOptions) {
+                throw new Error("Cannot extend function that is already an optimistic model!");
+            }
+
             cls.getAll = staticMethod(cls, getAll);
             cls.get = staticMethod(cls, get);
             cls.getCached = staticMethod(cls, get, { useCached: true });
