@@ -476,6 +476,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
         create: create,
 
         mkToScope: mkToScopeMethod,
+        newInstance: newInstance,
     };
 
     return Model;
