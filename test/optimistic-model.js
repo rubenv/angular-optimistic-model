@@ -1441,4 +1441,23 @@ describe("Model", function () {
         assert.equal(result.length, 1);
         assert.equal(result[0].id, 123);
     });
+
+    it("Has a self parameter that points to the calling object", function () {
+        var selfObj = null;
+        function Document() {}
+        Model.extend(Document, {
+            ns: "/api/documents",
+            backend: function (method, url, data, operation, self) {
+                selfObj = self;
+                var deferred = $q.defer();
+                deferred.resolve();
+                return deferred.promise;
+            },
+        });
+
+        var doc = new Document();
+        doc.create();
+        $rootScope.$digest();
+        assert.equal(selfObj, doc);
+    });
 });

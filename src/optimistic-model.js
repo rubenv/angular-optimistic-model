@@ -271,7 +271,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
         }
 
         var key = opts.ns + "/" + obj[opts.idField];
-        var promise = opts.backend("PUT", key, data, "update").then(function (result) {
+        var promise = opts.backend("PUT", key, data, "update", obj).then(function (result) {
             var newObj = newInstance(Class, result);
             storeInCache(key, newObj);
             merge(newObj, obj);
@@ -291,7 +291,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
         var id = typeof obj === "object" ? obj[opts.idField] : obj;
         var key = opts.ns + "/" + id;
 
-        var promise = opts.backend("DELETE", key, null, "destroy").then(function () {
+        var promise = opts.backend("DELETE", key, null, "destroy", obj).then(function () {
             delete cache[key];
 
             // Remove from parent collection (if available)
@@ -320,7 +320,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
     function create(Class, options, obj) {
         var opts = getOptions(Class, options);
         obj = obj.constructor === Class ? obj : newInstance(Class, obj);
-        var promise = opts.backend("POST", opts.ns, obj, "create").then(function (data) {
+        var promise = opts.backend("POST", opts.ns, obj, "create", obj).then(function (data) {
             var newObj = newInstance(Class, data);
             var key = opts.ns + "/" + newObj[opts.idField];
             storeInCache(key, newObj);
