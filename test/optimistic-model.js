@@ -1460,4 +1460,27 @@ describe("Model", function () {
         $rootScope.$digest();
         assert.equal(selfObj, doc);
     });
+
+    it("Keeps private data after saving", function () {
+        function Document() {
+            this.$$private = 0;
+        }
+        Model.extend(Document, {
+            ns: "/api/documents",
+            backend: function (method, url, data, operation, self) {
+                assert.equal(self.$$private, 1);
+                var deferred = $q.defer();
+                deferred.resolve({
+                    id: 1,
+                });
+                return deferred.promise;
+            },
+        });
+
+        var doc = new Document();
+        doc.$$private = 1;
+        doc.save();
+        $rootScope.$digest();
+        assert.equal(doc.$$private, 1);
+    });
 });

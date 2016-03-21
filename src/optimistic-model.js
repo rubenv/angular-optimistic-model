@@ -100,7 +100,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
             targetObj.length = data.length;
         } else {
             for (var field in data) {
-                if (field[0] !== "_") {
+                if (data.hasOwnProperty(field) && field[0] !== "_") {
                     targetObj[field] = data[field];
                 }
             }
@@ -326,7 +326,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
             storeInCache(key, newObj);
             var result = cache[key];
 
-            merge(result, obj);
+            merge(data, obj);
             obj[cloneParent] = result;
             delete obj[snapshotField];
 
