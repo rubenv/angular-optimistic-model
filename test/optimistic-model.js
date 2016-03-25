@@ -877,6 +877,7 @@ describe("Model", function () {
     it("Ignores private fields", function () {
         function Document() {
             this._priv = 123;
+            this.$priv2 = 124;
         }
         Model.extend(Document, {
             ns: "/api/documents",
@@ -891,7 +892,9 @@ describe("Model", function () {
         var doc = Model.getCache("/api/documents/124");
         assert.equal(doc.constructor, Document);
         assert.equal(doc._priv, 123);
+        assert.equal(doc.$priv2, 124);
         doc._priv = 456;
+        doc.$priv2 = 457;
 
 
         Document.cache({
@@ -901,6 +904,7 @@ describe("Model", function () {
 
         assert.equal(doc.title, "Test 3");
         assert.equal(doc._priv, 456);
+        assert.equal(doc.$priv2, 457);
     });
 
     it("Should not overwrite scope objects that are referenced elsewhere", function () {

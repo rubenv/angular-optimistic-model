@@ -100,7 +100,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
             targetObj.length = data.length;
         } else {
             for (var field in data) {
-                if (data.hasOwnProperty(field) && field[0] !== "_") {
+                if (data.hasOwnProperty(field) && field[0] !== "_" && field[0] !== "$") {
                     targetObj[field] = data[field];
                 }
             }
