@@ -94,6 +94,36 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", "
         }
     }
 
+    function merge(data, targetObj) {
+        if (angular.isArray(data)) {
+            for (var i = 0; i < data.length; i++) {
+                targetObj[i] = data[i];
+            }
+            targetObj.length = data.length;
+        } else {
+            for (var field in data) {
+                if (data.hasOwnProperty(field) && field[0] !== "_" && field[0] !== "$") {
+                    targetObj[field] = data[field];
+                }
+            }
+        }
+    }
+
+    function mergeInto(target, key, data) {
+        if (!target[key]) {
+            target[key] = data;
+            return;
+        }
+
+        if (target[key] === data) {
+            return;
+        }
+
+        var targetObj = target[key];
+        merge(data, targetObj);
+    }
+
+
     function storeInCache(key, data, maxLife) {
         if (maxLife) {
             var now = Model.now();
@@ -144,35 +174,6 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", "
         } else {
             storeInCache(key, newInstance(Class, data), cacheLife);
         }
-    }
-
-    function merge(data, targetObj) {
-        if (angular.isArray(data)) {
-            for (var i = 0; i < data.length; i++) {
-                targetObj[i] = data[i];
-            }
-            targetObj.length = data.length;
-        } else {
-            for (var field in data) {
-                if (data.hasOwnProperty(field) && field[0] !== "_" && field[0] !== "$") {
-                    targetObj[field] = data[field];
-                }
-            }
-        }
-    }
-
-    function mergeInto(target, key, data) {
-        if (!target[key]) {
-            target[key] = data;
-            return;
-        }
-
-        if (target[key] === data) {
-            return;
-        }
-
-        var targetObj = target[key];
-        merge(data, targetObj);
     }
 
     function updateScope(scope, key, data, idField) {
@@ -489,7 +490,8 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", "
         };
     }
 
-    var Model = {
+    // Ignore below is needed for the Model.now() references above. Those are known to be safe.
+    var Model = { // jshint ignore:line
         defaults: function (defaults) {
             defaultOptions = angular.extend(defaultOptions, defaults);
         },
