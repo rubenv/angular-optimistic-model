@@ -1,6 +1,7 @@
 describe("Model", function () {
     var $q;
     var $httpBackend;
+    var $interval;
     var $rootScope;
     var Model = null;
     var Person;
@@ -14,8 +15,9 @@ describe("Model", function () {
 
     beforeEach(inject(function ($injector, $http) {
         $httpBackend = $injector.get("$httpBackend");
-        $rootScope = $injector.get("$rootScope");
+        $interval = $injector.get("$interval");
         $q = $injector.get("$q");
+        $rootScope = $injector.get("$rootScope");
 
         callAccount = function callAccount(method, url, data) {
             return $http({
@@ -1486,5 +1488,40 @@ describe("Model", function () {
         doc.save();
         $rootScope.$digest();
         assert.equal(doc.$$private, 1);
+    });
+
+    it("Can set max cache lifetime", function () {
+        var now = new Date().getTime();
+        function Document() {}
+        Model.extend(Document, {
+            ns: "/api/documents",
+            useCached: true,
+            cacheLife: 300,
+        });
+
+        var getTime = Model.now;
+        Model.now = function () {
+            return now;
+        };
+
+        Document.cache("/api/documents", [
+            {
+                id: 123,
+                content: "test"
+            }
+        ]);
+
+        var doc = Document.getSync(123);
+        assert.equal(doc.content, "test");
+
+        Model.now = function () {
+            return now + 310 * 1000;
+        };
+        $interval.flush(310 * 1000);
+
+        doc = Document.getSync(123);
+        assert.equal(doc, null);
+
+        Model.now = getTime;
     });
 });

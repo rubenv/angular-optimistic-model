@@ -1,4 +1,4 @@
-angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", function ($q, $rootScope) {
+angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", "$interval", function ($q, $rootScope, $interval) {
     var cloneParent = "$$cloneParent";
     var snapshotField = "$$snapshot";
     var modelCachedEvent = "modelCached";
@@ -11,6 +11,10 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
     };
 
     var cache = {};
+    var cacheExpiry = {};
+    var collector = null;
+    var defaultExpiry = 60 * 1000;
+    var minExpiry = defaultExpiry;
 
     function getOptions(Class, options, extra) {
         return angular.extend({}, Class.modelOptions, options, extra || {});
@@ -57,13 +61,63 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
         }
     }
 
-    function storeInCache(key, data) {
+    function getTime() {
+        return new Date().getTime();
+    }
+
+    function expireCaches() {
+        var keys = Object.keys(cacheExpiry);
+        var now = Model.now();
+
+        var expired = false;
+        for (var i = 0; i < keys.length; i++) {
+            var key = keys[i];
+            var expiry = cacheExpiry[key];
+
+            if (expiry.lastUse + expiry.cacheLife < now) {
+                delete(cache[key]);
+                delete(cacheExpiry[key]);
+                expired = true;
+            }
+        }
+
+        if (expired && Object.keys(cacheExpiry).length === 0) {
+            $interval.cancel(collector);
+            collector = null;
+            minExpiry = defaultExpiry;
+        }
+    }
+
+    function updateExpiry(key) {
+        if (cacheExpiry[key]) {
+            cacheExpiry[key].lastUse = Model.now();
+        }
+    }
+
+    function storeInCache(key, data, maxLife) {
+        if (maxLife) {
+            var now = Model.now();
+            cacheExpiry[key] = {
+                lastUse: now,
+                cacheLife: maxLife * 1000,
+            };
+
+            if (!collector) {
+                collector = $interval(expireCaches, minExpiry);
+            } else if (maxLife * 1000 < minExpiry) {
+                $interval.cancel(collector);
+                minExpiry = maxLife * 1000;
+                collector = $interval(expireCaches, minExpiry);
+            }
+        }
+
         mergeInto(cache, key, data);
         $rootScope.$broadcast(modelCachedEvent, key, cache[key]);
     }
 
     function fillCache(Class, options, key, data) {
         var opts = getOptions(Class, options);
+        var cacheLife = opts.cacheLife || 0;
 
         if (!data && angular.isArray(key)) {
             data = key;
@@ -82,13 +136,13 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
             for (var i = 0; i < data.length; i++) {
                 var obj = newInstance(Class, data[i]);
                 if (opts.populateChildren) {
-                    storeInCache(key + "/" + obj[opts.idField], obj);
+                    storeInCache(key + "/" + obj[opts.idField], obj, cacheLife);
                 }
                 results.push(obj);
             }
-            storeInCache(key, results);
+            storeInCache(key, results, cacheLife);
         } else {
-            storeInCache(key, newInstance(Class, data));
+            storeInCache(key, newInstance(Class, data), cacheLife);
         }
     }
 
@@ -151,6 +205,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
         cloned = !!cloned;
         promise.toScope = function (scope, field, filterFn) {
             if (cache[key]) {
+                updateExpiry(key);
                 var obj = execFilter(cache[key], filterFn);
                 updateScope(scope, field, cloned ? clone(obj) : obj, idField);
             }
@@ -210,6 +265,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
         var promise = null;
 
         if (opts.useCached && cache[key]) {
+            updateExpiry(key);
             promise = mkResolved(cloned ? clone(cache[key]) : cache[key]);
         } else {
             promise = opts.backend("GET", key, null, "getAll").then(function (data) {
@@ -229,6 +285,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
         var promise = null;
 
         if (opts.useCached && opts.useCachedChildren && cache[key]) {
+            updateExpiry(key);
             promise = mkResolved(cloned ? clone(cache[key]) : cache[key]);
         } else {
             promise = opts.backend("GET", key, null, "get").then(function (result) {
@@ -247,6 +304,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
             throw new Error("Can only use getAllSync on models that have useCached: true");
         }
         var key = mkUrl(opts.ns, opts.query);
+        updateExpiry(key);
         return cache[key];
     }
 
@@ -256,6 +314,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
             throw new Error("Can only use getSync on models that have useCached: true");
         }
         var key = opts.ns + "/" + id;
+        updateExpiry(key);
         return cache[key];
     }
 
@@ -273,7 +332,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
         var key = opts.ns + "/" + obj[opts.idField];
         var promise = opts.backend("PUT", key, data, "update", obj).then(function (result) {
             var newObj = newInstance(Class, result);
-            storeInCache(key, newObj);
+            storeInCache(key, newObj, opts.cacheLife || 0);
             merge(newObj, obj);
             delete obj[snapshotField];
             return cache[key];
@@ -466,6 +525,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
         },
 
         getCache: function (key) {
+            updateExpiry(key);
             return cache[key];
         },
 
@@ -477,6 +537,9 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", f
 
         mkToScope: mkToScopeMethod,
         newInstance: newInstance,
+
+        // Can be overwritten during testing
+        now: getTime,
     };
 
     return Model;
