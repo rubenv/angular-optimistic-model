@@ -61,6 +61,10 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", "
         }
     }
 
+    function mkClone() {
+        return clone(this);
+    }
+
     function getTime() {
         return new Date().getTime();
     }
@@ -518,6 +522,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", "
             proto.delete = method(destroy);
             proto.create = method(create);
             proto.save = save;
+            proto.clone = mkClone;
             proto.hasChanges = hasChanges;
             proto.snapshot = snapshot;
         },
