@@ -1524,4 +1524,19 @@ describe("Model", function () {
 
         Model.now = getTime;
     });
+
+    it("Objects have a clone method", function () {
+        function Document() {}
+        Model.extend(Document, { ns: "/api/documents" });
+
+        var doc = new Document();
+        doc.id = 2;
+
+        var clone = doc.clone();
+        assert.equal(clone.hasChanges(), false);
+        clone.id = 3;
+        assert.equal(clone.hasChanges(), true);
+        assert.equal(doc.id, 2);
+        assert.equal(clone.id, 3);
+    });
 });
