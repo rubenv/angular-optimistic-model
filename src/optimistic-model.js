@@ -507,7 +507,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
 
             cls.getAll = staticMethod(cls, getAll);
             cls.get = staticMethod(cls, get);
-            cls.getCached = staticMethod(cls, get, { useCached: true });
+            cls.getCached = staticMethod(cls, get, { useCached: true, useCachedChildren: true });
             cls.getClone = staticMethod(cls, get, { cloned: true });
             cls.getAllSync = staticMethod(cls, getAllSync);
             cls.getSync = staticMethod(cls, getSync);

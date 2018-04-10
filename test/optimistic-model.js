@@ -749,6 +749,27 @@ describe("Model", function () {
         assert.equal(result2, result);
     });
 
+    it("getCached always checks cache", function () {
+        function Document() {}
+        Model.extend(Document, { ns: "/api/documents", useCached: true, useCachedChildren: true });
+
+        Document.cache("/api/documents/123", {
+            id: 123,
+            content: "test"
+        });
+
+        var scope = {};
+        var doc = null;
+        Document.get(123).toScope(scope, "document").then(function (result) {
+            doc = result;
+        });
+        $rootScope.$digest();
+
+        assert.equal(scope.document, doc);
+        assert.equal(scope.document.constructor, Document);
+        assert.equal(doc.content, "test");
+    });
+
     it("Uses options from class, adds overrides", function () {
         Model.get(Person, { ns: "/api/test" }, 123);
         $httpBackend.expectGET("/api/test/123").respond(200);
