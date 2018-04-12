@@ -1560,4 +1560,25 @@ describe("Model", function () {
         assert.equal(doc.id, 2);
         assert.equal(clone.id, 3);
     });
+
+    it ("Behaves with regards to constructor", function () {
+        function Document() {
+            this.val = 1;
+        }
+        Model.extend(Document, { ns: "/api/documents" });
+
+        Document.cache("/api/documents/123", {
+            id: 123,
+            val: 2
+        });
+
+        var result = null;
+        Document.getCached(123).then(function (obj) {
+            result = obj;
+            assert.equal(result.val, 2);
+        });
+        $rootScope.$digest();
+
+        assert.equal(result.val, 2);
+    });
 });
