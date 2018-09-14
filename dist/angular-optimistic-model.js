@@ -226,7 +226,6 @@ angular.module("rt.optimisticmodel", []).factory("Model", ["$q", "$rootScope", "
                         }
                     });
                 }
-
             });
 
             return promise.then(function () {

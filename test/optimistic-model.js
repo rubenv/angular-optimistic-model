@@ -1599,5 +1599,6 @@ describe("Model", function () {
         $httpBackend.expectGET("/api/people/123").respond(200, { id: 123, first_name: "Joe" });
         $httpBackend.flush();
         assert.equal(scope.cloned.first_name, "Joe");
+        assert.equal(false, scope.cloned.hasChanges());
     });
 });
