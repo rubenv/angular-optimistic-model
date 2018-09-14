@@ -1581,4 +1581,23 @@ describe("Model", function () {
 
         assert.equal(result.val, 2);
     });
+
+    it("Cloned versions are always refreshed from the network", function () {
+
+        var scope = {};
+        Person.get(123).toScope(scope, "person");
+        $httpBackend.expectGET("/api/people/123").respond(200, { id: 123, first_name: "Bob" });
+        $httpBackend.flush();
+        assert.equal(scope.person.first_name, "Bob");
+
+        var p1 = null;
+        Person.getClone(123).toScope(scope, "cloned").then(function (p) {
+            p1 = p;
+        });
+        assert.equal(p1, null);
+        assert.equal(scope.cloned, null);
+        $httpBackend.expectGET("/api/people/123").respond(200, { id: 123, first_name: "Joe" });
+        $httpBackend.flush();
+        assert.equal(scope.cloned.first_name, "Joe");
+    });
 });

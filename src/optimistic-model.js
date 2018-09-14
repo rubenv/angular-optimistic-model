@@ -209,7 +209,7 @@ angular.module("rt.optimisticmodel", []).factory("Model", function ($q, $rootSco
     function mkToScopeMethod(promise, key, cloned, idField) {
         cloned = !!cloned;
         promise.toScope = function (scope, field, filterFn) {
-            if (cache[key]) {
+            if (cache[key] && !cloned) {
                 updateExpiry(key);
                 var obj = execFilter(cache[key], filterFn);
                 updateScope(scope, field, cloned ? clone(obj) : obj, idField);
