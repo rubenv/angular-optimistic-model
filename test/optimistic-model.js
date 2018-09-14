@@ -1583,7 +1583,6 @@ describe("Model", function () {
     });
 
     it("Cloned versions are always refreshed from the network", function () {
-
         var scope = {};
         Person.get(123).toScope(scope, "person");
         $httpBackend.expectGET("/api/people/123").respond(200, { id: 123, first_name: "Bob" });
